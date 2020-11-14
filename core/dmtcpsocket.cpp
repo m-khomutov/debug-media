@@ -27,22 +27,22 @@ bool dm::TcpSocket::isset( fd_set* rfds ) {
 int dm::TcpSocket::connect( sockaddr * to ) {
     int rc = ::connect( m_fd, to, sizeof( sockaddr_in ) );
 
-   if( rc == -1 && errno == EINPROGRESS ) {
-       fd_set wfds;
-       timeval tv = { 5, 0 };
-       FD_ZERO( &wfds );
-       FD_SET( m_fd, &wfds );
-       if( (rc = select( m_fd + 1, NULL, &wfds, NULL, &tv )) < 0 && errno != EINTR ) {
-           return rc;
-       }
-       else if( (rc > 0 ) ) {
-           socklen_t slen = sizeof( int );
-           int nok;
-           if( getsockopt( m_fd, SOL_SOCKET, SO_ERROR, (void*)(&nok), &slen ) < 0 || nok )
-               return -1;
-       }
-   }
-   return rc;
+    if( rc == -1 && errno == EINPROGRESS ) {
+        fd_set wfds;
+        timeval tv = { 5, 0 };
+        FD_ZERO( &wfds );
+        FD_SET( m_fd, &wfds );
+        if( (rc = select( m_fd + 1, NULL, &wfds, NULL, &tv )) < 0 && errno != EINTR ) {
+            return rc;
+        }
+        else if( (rc > 0 ) ) {
+            socklen_t slen = sizeof( int );
+            int nok;
+            if( getsockopt( m_fd, SOL_SOCKET, SO_ERROR, (void*)(&nok), &slen ) < 0 || nok )
+                return -1;
+        }
+    }
+    return rc;
 }
 
 int dm::TcpSocket::send( const uint8_t * msg, size_t msgsz ) {

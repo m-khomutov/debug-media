@@ -2,7 +2,7 @@
 //#include "seagull_viewer.h"
 //#include "../http/seagull_receiver.h"
 //#include "../hls/seagull_receiver.h"
-//#include "../rtsp/seagull_receiver.h"
+#include "rtsp/dmreceiver.h"
 //#include "../mp2ts/seagull_receiver.h"
 
 #include <regex>
@@ -18,9 +18,8 @@ dm::BaseReceiver* dm::BaseReceiver::create( const char * source, const char* cer
     }
     else if( strstr( url, "mp2t://" ) == url ) {
         return new seagull::mp2t::Receiver ( viewer, url, cert );
-    }
-    return new rtsp::Receiver( viewer, tsfile, url, cert );*/
-    return nullptr;
+    }*/
+    return new rtsp::Receiver( source, cert );
 }
 
 dm::BaseReceiver::BaseReceiver( const char * source, const char * cert )

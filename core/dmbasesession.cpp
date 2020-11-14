@@ -49,8 +49,12 @@ char dm::BaseSession::getChar() {
 }
 
 int dm::BaseSession::putLine( const char *line ) {
+    size_t sz = strlen( line );
+    if( !sz )
+        return send( (const uint8_t*)kEol, sizeof( kEol ) );
+
     int rc{0};
-    if( (rc = send( (const uint8_t*)line, strlen(line) )) > 0)
+    if( (rc = send( (const uint8_t*)line, sz )) > 0)
        rc += send( (const uint8_t*)kEol, sizeof( kEol ) );
     return rc;
 }

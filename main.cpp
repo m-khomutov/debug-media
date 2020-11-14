@@ -1,3 +1,5 @@
+#include "core/dmbasereceiver.h"
+
 #include <unistd.h>
 #include <signal.h>
 #include <locale.h>
@@ -12,12 +14,15 @@
 #include <iomanip>
 
 namespace {
+    std::unique_ptr< dm::BaseReceiver > receiver;
+
     void catchsig( int nonsence ) {
+        receiver.reset();
         qApp->quit();
     }
     void showopts() {
-        std::cout << "options: -r|-c|-f|-w|-p|-h\n"
-                  << "         -r path to source (required)\n"
+        std::cout << "options: -s|-c|-f|-w|-p|-h\n"
+                  << "         -s source url (required)\n"
                   << "         -c path to cert (default nil)\n"
                   << "         -f .ts file co compare contents with\n"
                   << "         -w PID to watch (default 0 - no pid to watch)\n"
@@ -43,9 +48,9 @@ int main( int argc, char* argv[] ) {
     uint16_t pid_to_watch = 0;
     int ask_position_sec = 0;
 
-    while( (c = getopt( argc, argv, "r:c:f:w:p:h" )) != -1 ) {
+    while( (c = getopt( argc, argv, "s:c:f:w:p:h" )) != -1 ) {
         switch( c ) {
-            case 'r':
+            case 's':
                 source = optarg;
                 break;
             case 'c':
@@ -92,6 +97,8 @@ int main( int argc, char* argv[] ) {
         QTextCodec::setCodecForCStrings(utfcodec);
 
         setlocale( LC_ALL, "POSIX" );
+        receiver.reset( dm::BaseReceiver::create( source, cert ) );
+        receiver->run();
         //std::unique_ptr< seagull::basic::Viewer > viewer = seagull::basic::Viewer::Make( res, cert, ask_position_sec, tsfile.get() );
         //viewer->view();
         rc = app.exec();
