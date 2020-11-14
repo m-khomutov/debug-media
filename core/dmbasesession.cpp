@@ -1,26 +1,21 @@
 #include "dmbasesession.h"
+#include "dmtcpsession.h"
+#include "dmsslsession.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <netdb.h>
-#include <unistd.h>
 #include <dirent.h>
 
-#include <iostream>
 #include <memory>
 #include <regex>
 
-//#include "seagull_tcp_session.h"
 //#include "seagull_ssl_session.h"
 
 const char dm::BaseSession::kEol[ 2 ] = { 0x0D, 0x0A };
 
 dm::BaseSession* dm::BaseSession::create( const char * source, const char* pemkey ) {
-   /*if( strstr( source, "https://" ) == source )
-       return new seagull::ssl::Session( to, pem );
-
-   return new seagull::TCP::Session( to );*/
-     return nullptr;
+   if( strstr( source, "https://" ) == source )
+       return new SslSession( source, pemkey );
+    return new TcpSession( source );
 }
 
 dm::BaseSession::BaseSession( const char * source ) : m_source( source ) {

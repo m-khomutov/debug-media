@@ -16,9 +16,10 @@ namespace dm {
 
         virtual void open () =0;
         virtual void close() =0;
-        virtual void set( fd_set* rfds ) =0;
-        virtual int  fd() =0;
-        virtual bool isset( fd_set* rfds ) =0;
+
+        virtual void set( fd_set* rfds ) {}
+        virtual int  fd() { return -1; }
+        virtual bool isset( fd_set* rfds ) { return false; }
 
         char getChar();
         int putLine( const char* line );
