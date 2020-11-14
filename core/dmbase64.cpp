@@ -1,7 +1,6 @@
 #include "dmbase64.h"
 
 #include <string.h>
-#include <stdlib.h>
 
 #include <memory>
 #include <functional>
