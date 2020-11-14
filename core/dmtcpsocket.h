@@ -27,6 +27,7 @@ namespace dm {
         int send( const uint8_t*,size_t );
         int receive( sockaddr*, uint8_t*,size_t );
         void reopen();
+        void close();
 
     private:
         int m_fd;

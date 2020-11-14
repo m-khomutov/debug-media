@@ -11,7 +11,7 @@ dm::TcpSocket::TcpSocket() {
     f_open();
 }
 dm::TcpSocket::~TcpSocket() {
-    close( m_fd );
+    close();
 }
 dm::TcpSocket::operator int() {
     return m_fd;
@@ -102,11 +102,15 @@ void dm::TcpSocket::f_open() {
     socklen_t errlen = sizeof (int);
     int err;
     if( (getsockopt( m_fd, SOL_SOCKET, SO_ERROR, &err, &errlen )) != 0 ) {
-      close( m_fd );
+      ::close( m_fd );
       throw std::logic_error( std::string( "sockerror: " ) + std::string( strerror( err ) ) );
     }
 
     struct timeval tv = { 5, 0 };
     setsockopt( m_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof( tv ) );
     setsockopt( m_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof( tv ) );
+}
+
+void dm::TcpSocket::close() {
+    ::close( m_fd );
 }
