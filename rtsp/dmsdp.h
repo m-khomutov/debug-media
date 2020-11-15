@@ -74,12 +74,16 @@ namespace dm {
                 else if( line.find( "fmtp:" ) == 0 ) {
                     fmtp = line.substr(5);
                 }
+                else if( line.find( "rtpmap:" ) == 0 ) {
+                    rtpmap = line.substr( 7 );
+                }
             }
 
             virtual void parse(const std::string& line) = 0;
 
             std::string control;
             std::string fmtp;
+            std::string rtpmap;
             std::string connection;
             std::string encryption_key;
 

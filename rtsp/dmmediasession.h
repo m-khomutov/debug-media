@@ -22,6 +22,7 @@ namespace dm {
 
             const uint8_t * payload;
 
+            Header() = default;
             Header( const uint8_t * data );
         };
     }  // namespace rtp
@@ -29,10 +30,15 @@ namespace dm {
     namespace rtsp {
         class MediaSession {
         public:
+            static MediaSession * create( const MediaDescription & description );
+
+            MediaSession( const MediaDescription & description );
+            virtual ~MediaSession() = default;
+
             void setTransport( const char* line );
             void setId( const char * line );
 
-            void receiveInterleaved( const uint8_t * data, size_t datasz );
+            virtual void receiveInterleaved( const uint8_t * data, size_t datasz );
 
             MediaDescription * description() {
                 return &m_media_description;
@@ -44,11 +50,26 @@ namespace dm {
                 return m_interleaved_channel[0];
             }
 
-        private:
+        protected:
             MediaDescription m_media_description;
             std::string m_id;
             uint32_t m_timeout;
             uint8_t m_interleaved_channel[2];
+            rtp::Header m_rtp_header;
+        };
+
+        class H264Session : public MediaSession {
+        public:
+            H264Session( const MediaDescription & description );
+
+            void receiveInterleaved( const uint8_t * data, size_t datasz ) override;
+
+        private:
+            std::vector< uint8_t > m_sps;
+            std::vector< uint8_t > m_pps;
+
+        private:
+            void f_set_sprop_parameter_sets( const std::string & sprop );
         };
     }  // namespace rtsp
 }  // namespace dm

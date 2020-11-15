@@ -18,7 +18,8 @@ include_directories(${PROJECT_SOURCE_DIR} /usr/include/qt4)
 #	${PROJECT_SOURCE_DIR}/*.h ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/${MOC_SOURCES})
 FILE(GLOB SOURCES ${PROJECT_SOURCE_DIR}/*.h ${PROJECT_SOURCE_DIR}/*.cpp
                   ${PROJECT_SOURCE_DIR}/core/*.h ${PROJECT_SOURCE_DIR}/core/*.cpp
-                  ${PROJECT_SOURCE_DIR}/rtsp/*.h ${PROJECT_SOURCE_DIR}/rtsp/*.cpp)
+                  ${PROJECT_SOURCE_DIR}/rtsp/*.h ${PROJECT_SOURCE_DIR}/rtsp/*.cpp
+                  ${PROJECT_SOURCE_DIR}/h264/*.h ${PROJECT_SOURCE_DIR}/h264/*.cpp)
 
 add_executable(dmplayer  ${SOURCES} rtsp/dmmediasession.cpp rtsp/dmmediasession.h)
 target_link_libraries(dmplayer QtCore QtGui avformat avcodec avutil avresample swscale ssl crypto pthread asound z X11)

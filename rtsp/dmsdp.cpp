@@ -115,7 +115,6 @@ namespace dm {
                 for( auto a : description.attributes )
                     out << "\t\t" << a << std::endl;
             }
-            out << "CONTROL : " << description.control << std::endl;
             return out;
         }
 

@@ -15,6 +15,9 @@ namespace dm {
         const std::vector< uint8_t > & dec() const {
             return m_dec;
         }
+        void append( std::vector< uint8_t > & to ) {
+            to.insert( to.end(), m_dec.begin(), m_dec.end() );
+        }
 
     private:
         std::string m_enc;

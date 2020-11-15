@@ -148,6 +148,7 @@ int dm::rtsp::Connection::askSdp() {
     m_session->putRequest( m_protoline.c_str(), m_headers );
 
     SDP * current_sdp = nullptr;
+    std::vector< MediaDescription > mds;
     int ret = 0;
     while( true ) {
         std::string s = line();
@@ -164,17 +165,19 @@ int dm::rtsp::Connection::askSdp() {
                     current_sdp->parse( s );
                     break;
                 case 'm':
-                    m_media_sessions.push_back( std::shared_ptr< MediaSession >( new MediaSession ) );
-                    current_sdp = m_media_sessions.back()->description();
+                    mds.push_back( MediaDescription() );
+                    current_sdp = &mds.back();
                     current_sdp->parse( s );
                     break;
                 default:
                     if( current_sdp )
                         current_sdp->parse( s );
-                    ////setRange(s);
             }
         }
     }
+    for( auto d : mds )
+        m_media_sessions.push_back( std::shared_ptr< MediaSession >( MediaSession::create( d ) ) );
+
     std::cerr << m_session_description << std::endl;
     for( auto session : m_media_sessions )
         std::cerr << *session->description() << std::endl;
