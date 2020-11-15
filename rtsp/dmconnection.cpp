@@ -425,8 +425,15 @@ int dm::rtsp::Connection::receive( fd_set* rfds, InterleavedBuffer * buffer ) {
                         break;
                 }
             }
-            if( state == kWaitingPacket )
+            if( state == kWaitingPacket ) {
                 ret = m_session->receive( buffer->data, buffer->size, true );
+                for( auto session : m_media_sessions ) {
+                    if( session->channel() == buffer->channel ) {
+                        session->receiveInterleaved( buffer->data, buffer->size );
+                        break;
+                    }
+                }
+            }
         }
     }
     return ret;

@@ -61,11 +61,8 @@ void dm::rtsp::Receiver::run () {
                 m_connection.set( &rfds );
 
                 timeval tv{ 0, 100 };
-                if( (select( m_connection.fd() + 1, &rfds, NULL, NULL, &tv )) > 0 ){
-                    int len = m_connection.receive( &rfds, &m_interleaved_buffer );
-                    std::cerr << "recvd  chan: " << int(m_interleaved_buffer.channel) << " : sz=" << m_interleaved_buffer.size << std::endl;
-                }
-
+                if( (select( m_connection.fd() + 1, &rfds, NULL, NULL, &tv )) > 0 )
+                    m_connection.receive( &rfds, &m_interleaved_buffer );
                 std::this_thread::yield();
             }
         });
