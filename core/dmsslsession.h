@@ -17,12 +17,12 @@ namespace dm {
         void open() override;
         void close() override;
 
+        int receive( uint8_t * buffer, size_t buffersz, bool whole ) override;
+        int send( const uint8_t * msg, size_t msgsz ) override;
+
     public:
         std::unique_ptr< BIO, std::function< void(BIO*) > > m_bio;
         std::unique_ptr< SSL, std::function< void(SSL*) > > m_ssl;
         std::unique_ptr< SSL_CTX, std::function< void(SSL_CTX*) > > m_ctx;
-
-        int receive( uint8_t * buffer, size_t buffersz ) override;
-        int send( const uint8_t * msg, size_t msgsz ) override;
 };
 }  // namespace dm

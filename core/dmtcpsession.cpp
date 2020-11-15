@@ -32,15 +32,16 @@ bool dm::TcpSession::isset( fd_set* rfds ) {
    return m_socket.isset( rfds );
 }
 
-int dm::TcpSession::receive( uint8_t *buf, size_t sz ) {
+int dm::TcpSession::receive( uint8_t *buf, size_t sz, bool whole ) {
     if( m_connected == -1 )
         return -1;
+    if( !whole )
+        return m_socket.receive( (sockaddr*)&m_source, buf, sz );
 
-    sockaddr_in src;
     int ret = 0;
     while( ret < (int)sz ) {
         int rc;
-        if( (rc = m_socket.receive( (sockaddr*)&src, buf + ret, sz - ret )) <= 0 )
+        if( (rc = m_socket.receive( (sockaddr*)&m_source, buf + ret, sz - ret )) <= 0 )
             break;
         ret += rc;
     }

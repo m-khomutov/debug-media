@@ -24,14 +24,13 @@ namespace dm {
             void run() override;
 
         private:
-            static const size_t RTPBUFSZ = 1<<16;
-
             std::thread m_thread;
             std::atomic_bool m_running{true};
             //basic::Viewer* m_viewer;
             Connection m_connection;
 
             std::vector< uint8_t > m_data;
+            Connection::InterleavedBuffer m_interleaved_buffer;
         };
     }  // namespace rtsp
 }  // namespace dm

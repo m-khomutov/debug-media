@@ -41,7 +41,7 @@ void dm::SslSession::close() {
     m_bio.reset();
 }
 
-int dm::SslSession::receive( uint8_t * buffer, size_t bufsz ) {
+int dm::SslSession::receive( uint8_t * buffer, size_t bufsz, bool whole ) {
    int ret = BIO_read( m_bio.get(), buffer, bufsz );
    if( ret == 0 ) {
     /* Handle closed connection */

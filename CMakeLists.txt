@@ -20,6 +20,6 @@ FILE(GLOB SOURCES ${PROJECT_SOURCE_DIR}/*.h ${PROJECT_SOURCE_DIR}/*.cpp
                   ${PROJECT_SOURCE_DIR}/core/*.h ${PROJECT_SOURCE_DIR}/core/*.cpp
                   ${PROJECT_SOURCE_DIR}/rtsp/*.h ${PROJECT_SOURCE_DIR}/rtsp/*.cpp)
 
-add_executable(dmplayer  ${SOURCES})
+add_executable(dmplayer  ${SOURCES} rtsp/dmmediasession.cpp rtsp/dmmediasession.h)
 target_link_libraries(dmplayer QtCore QtGui avformat avcodec avutil avresample swscale ssl crypto pthread asound z X11)
 set_target_properties(dmplayer PROPERTIES AUTOMOC true)

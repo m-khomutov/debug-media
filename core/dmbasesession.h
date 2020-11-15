@@ -17,14 +17,16 @@ namespace dm {
         virtual void open () =0;
         virtual void close() =0;
 
+        virtual int receive( uint8_t *buf, size_t bufsz, bool whole )  =0;
+        virtual int send( const uint8_t * msg, size_t msgsz )  =0;
+
         virtual void set( fd_set* rfds ) {}
         virtual int  fd() { return -1; }
         virtual bool isset( fd_set* rfds ) { return false; }
 
-        char getChar();
+        int getChar( char * c );
         int putLine( const char* line );
         int putRequest( const char* protoline, const std::vector< std::string > & headers, const char * body =0 );
-        int getStream( uint8_t * buffer, size_t bufsz );
 
         const std::string& source () const {
             return m_source;
@@ -38,8 +40,5 @@ namespace dm {
 
         std::string m_source;
         sockaddr_in m_src_address;
-
-        virtual int receive( uint8_t *buf, size_t bufsz )  =0;
-        virtual int send( const uint8_t * msg, size_t msgsz )  =0;
     };
 }  // namespace dm

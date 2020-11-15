@@ -43,9 +43,8 @@ dm::BaseSession::BaseSession( const char * source ) : m_source( source ) {
         throw std::logic_error(std::string("invalid host: " ) + match_result[kHost].str() );
 }
 
-char dm::BaseSession::getChar() {
-   uint8_t ch;
-   return receive( &ch, 1 ) == 1 ? ch : 0;
+int dm::BaseSession::getChar( char * c ) {
+   return receive( (uint8_t*)c, 1, true );
 }
 
 int dm::BaseSession::putLine( const char *line ) {
@@ -79,8 +78,4 @@ int dm::BaseSession::putRequest( const char *protoline, const std::vector< std::
            rc += s;
    }
    return rc;
-}
-
-int dm::BaseSession::getStream( uint8_t* buffer, size_t bufsz ) {
-   return receive( buffer, bufsz );
 }

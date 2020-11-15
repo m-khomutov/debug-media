@@ -7,7 +7,8 @@ dm::rtsp::Receiver::Receiver( const char * source, const char * cert )
 : BaseReceiver( source, cert ),
     //m_viewer(viewer),
   m_connection( m_url.c_str(), m_path.c_str() ),
-  m_data( RTPBUFSZ ) {
+  m_data( 0xffff ) {
+    m_interleaved_buffer.data = m_data.data();
    //m_viewer->updateCachedDuration( basic::Receiver::CACHE_SIZE_MSEC + 5. );
 }
 
@@ -60,8 +61,10 @@ void dm::rtsp::Receiver::run () {
                 m_connection.set( &rfds );
 
                 timeval tv{ 0, 100 };
-                if( (select( m_connection.maxfd() + 1, &rfds, NULL, NULL, &tv )) > 0 )
-                    m_connection.receive( &rfds, m_data.data(), RTPBUFSZ );
+                if( (select( m_connection.fd() + 1, &rfds, NULL, NULL, &tv )) > 0 ){
+                    int len = m_connection.receive( &rfds, &m_interleaved_buffer );
+                    std::cerr << "recvd  chan: " << int(m_interleaved_buffer.channel) << " : sz=" << m_interleaved_buffer.size << std::endl;
+                }
 
                 std::this_thread::yield();
             }

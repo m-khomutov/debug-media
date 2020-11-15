@@ -1,9 +1,10 @@
 #pragma once
 #include "core/dmbasesession.h"
 #include "core/dmbasereceiver.h"
+#include "dmsdp.h"
+#include "dmmediasession.h"
 /*#include "../seagull_decoder.h"
 #include "seagull_socket.h"
-#include "seagull_sdp.h"
 */
 #include <memory>
 #include <mutex>
@@ -24,8 +25,6 @@ namespace dm {
         dump_file_.close();
      }
   }
-  void setTransport(const char* line) throw( std::logic_error );
-  void setID(const char* line);
   void setDecoder(basic::Viewer*);
   void FDSET(fd_set* rfds) {
     rtp_socket_.FDSET(rfds);
@@ -81,23 +80,29 @@ namespace dm {
 };*/
         class Connection {
         public:
+            struct InterleavedBuffer {
+                uint8_t channel;
+                uint16_t size;
+                uint8_t * data;
+            };
+
             Connection( const char * source, const char * path );
             ~Connection();
 
             void open( /*basic::Viewer* */ );
             void set( fd_set* rfds );
-            int  maxfd() const {
-                return m_maxfd;
+            int  fd() const {
+                return m_session->fd();
             }
-            int receive( fd_set* rfds, uint8_t * buf, size_t bufsz );
+            int receive( fd_set* rfds, InterleavedBuffer * buffer );
 
-            int  pause( float pause_point );
+            void pause( float pause_point );
             void scale( float sc );
             void resume( float position );
             void ping();
 
             void setPosition( int pos );
-            int getParameter(std::string param);
+            void getParameter(std::string param);
             void setParameter(const char* param);
 
             const Range * range() const {
@@ -129,8 +134,9 @@ namespace dm {
             std::set< std::string > m_options;
             std::mutex m_mutex;
 
-            //SessionDescription session_description_;
-            //std::vector<MediaSession*> media_sessions_;
+            SessionDescription m_session_description;
+            std::vector< std::shared_ptr< MediaSession > > m_media_sessions;
+            std::string m_session_id;
 
         private:
             std::string line();
@@ -140,9 +146,9 @@ namespace dm {
 
             int askOptions();
             int askSdp();
-            //int askSetup(MediaSession*, basic::Viewer*);
-            //int askPlay(MediaSession*, int position = 0, float scale = .0);
-            int askTeardown(const std::string& id);
+            int askSetup( MediaSession & session/*, basic::Viewer* */ );
+            void askPlay( int position = 0, float scale = .0 );
+            void askTeardown(const std::string& id);
         };
     }  // namespace rtsp
 }  // namespace dm
