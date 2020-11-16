@@ -45,7 +45,8 @@ const char * dm::rtsp::Connection::kSetParameter = "SET_PARAMETER ";
 const char * dm::rtsp::Connection::kUserAgent    = "User-Agent: DebugMedia Player/1.0.0";
 //const char *seagull::rtsp::Connection::kUserAgent    = "User-Agent: Eltex STB (live555 based)";
 
-dm::rtsp::Connection::Connection( const char * source, const char * path ) : m_session( BaseSession::create( source ) ),m_path( path ) {}
+dm::rtsp::Connection::Connection( const char * source, const char * path )
+: m_session( BaseSession::create( source ) ),m_path( path ) {}
 
 dm::rtsp::Connection::~Connection() {
     try {

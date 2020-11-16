@@ -3,6 +3,7 @@
 //
 #pragma once
 
+#include "core/dmbaseplayer.h"
 #include "dmsdp.h"
 
 namespace dm {
@@ -56,6 +57,7 @@ namespace dm {
             uint32_t m_timeout;
             uint8_t m_interleaved_channel[2];
             rtp::Header m_rtp_header;
+            BasePlayer * m_player {nullptr};
         };
     }  // namespace rtsp
 }  // namespace dm

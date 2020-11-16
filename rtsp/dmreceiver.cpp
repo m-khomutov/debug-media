@@ -1,15 +1,12 @@
 #include "dmreceiver.h"
-//#include "../basic/seagull_viewer.h"
 
 #include <iostream>
 
 dm::rtsp::Receiver::Receiver( const char * source, const char * cert )
 : BaseReceiver( source, cert ),
-    //m_viewer(viewer),
   m_connection( m_url.c_str(), m_path.c_str() ),
   m_data( 0xffff ) {
     m_interleaved_buffer.data = m_data.data();
-   //m_viewer->updateCachedDuration( basic::Receiver::CACHE_SIZE_MSEC + 5. );
 }
 
 dm::rtsp::Receiver::~Receiver() {
@@ -52,7 +49,7 @@ void dm::rtsp::Receiver::resume( float position ) {
 
 void dm::rtsp::Receiver::run () {
     try {
-        m_connection.open( /*viewer()*/ );
+        m_connection.open();
 
         m_thread = std::thread( [this](){
             while( m_running ) {

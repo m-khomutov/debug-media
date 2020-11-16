@@ -7,8 +7,6 @@
 
 #include <regex>
 
-const double dm::BaseReceiver::CACHE_SIZE_MSEC = 10.;
-
 dm::BaseReceiver* dm::BaseReceiver::create( const char * source, const char* cert ) {
     /*if( strstr( url, "http://" )  == url ) {
         return new seagull::http::Receiver( viewer, url, cert );

@@ -24,6 +24,8 @@ dm::h264::MediaSession::MediaSession( const rtsp::MediaDescription & description
         size_t p2 = m_media_description.fmtp.find( ';', pos );
         f_set_sprop_parameter_sets( m_media_description.fmtp.substr( pos+21, p2-pos-21) );
     }
+    m_player = BasePlayer::create( 640, 480 );
+    m_player->run();
 }
 
 void dm::h264::MediaSession::receiveInterleaved( const uint8_t *data, size_t datasz ) {
@@ -66,7 +68,7 @@ void dm::h264::MediaSession::receiveInterleaved( const uint8_t *data, size_t dat
         default:
             return;
     }
-    m_decoder.decode( m_nalu );
+    m_player->onFrame( m_decoder.decode( m_nalu ) );
     m_nalu.clear();
 }
 

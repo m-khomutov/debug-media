@@ -1,4 +1,6 @@
 #pragma once
+
+#include "dmbaseplayer.h"
 #include <netdb.h>
 
 #include <string>
@@ -9,8 +11,6 @@ namespace dm {
 
     class BaseReceiver {
     public:
-        static const double CACHE_SIZE_MSEC;
-        //static Receiver* Make( Viewer * viewer, mp2ts::File * tsfile, const char* url, const char* cert );
         static BaseReceiver* create( const char * source, const char* cert );
 
         BaseReceiver( const char * source, const char* cert );
@@ -31,7 +31,6 @@ namespace dm {
         virtual Range range() const { return Range(); }
 
     protected:
-        //Viewer*     m_viewer;
         std::string m_url;
         std::string m_path;
         std::string m_cert;

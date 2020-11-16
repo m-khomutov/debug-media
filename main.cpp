@@ -5,9 +5,6 @@
 #include <locale.h>
 #include <sys/time.h>
 
-//#include "basic/seagull_viewer.h"
-//#include "mp2ts/seagull_file.h"
-
 #include <QtGui/QApplication>
 #include <QtCore/QTextCodec>
 #include <iostream>
@@ -17,7 +14,6 @@ namespace {
     std::unique_ptr< dm::BaseReceiver > receiver;
 
     void catchsig( int nonsence ) {
-        receiver.reset();
         qApp->quit();
     }
     void showopts() {
@@ -36,7 +32,7 @@ namespace {
         out << std::setw( 2) << std::setfill( '0') << tp->tm_hour << ":" << tp->tm_min << ":" << tp->tm_sec << ".";
         out << std::setw( 4) << tv.tv_usec;
     }
-}
+}  // namespace
 
 
 
@@ -44,23 +40,15 @@ int main( int argc, char* argv[] ) {
     int c;
     const char * source = nullptr;
     const char * cert = nullptr;
-    const char * tsfname  = nullptr;
-    uint16_t pid_to_watch = 0;
     int ask_position_sec = 0;
 
-    while( (c = getopt( argc, argv, "s:c:f:w:p:h" )) != -1 ) {
+    while( (c = getopt( argc, argv, "s:c:p:h" )) != -1 ) {
         switch( c ) {
             case 's':
                 source = optarg;
                 break;
             case 'c':
                 cert = optarg;
-                break;
-            case 'f':
-                tsfname = optarg;
-                break;
-            case 'w':
-                pid_to_watch = strtol( optarg, 0, 10 );
                 break;
             case 'p':
                 ask_position_sec = strtol(optarg, 0, 10);
@@ -87,20 +75,15 @@ int main( int argc, char* argv[] ) {
 
     int rc{0};
     try {
-        //std::unique_ptr<seagull::mp2ts::File> tsfile;
-        //if( tsfn ) tsfile.reset( new seagull::mp2ts::File( tsfn, watch ) );
-
         QApplication app( argc, argv );
                      app.setApplicationName( "dmplayer" );
         QTextCodec *utfcodec = QTextCodec::codecForName("UTF-8");
         QTextCodec::setCodecForTr      (utfcodec);
         QTextCodec::setCodecForCStrings(utfcodec);
-
         setlocale( LC_ALL, "POSIX" );
         receiver.reset( dm::BaseReceiver::create( source, cert ) );
         receiver->run();
-        //std::unique_ptr< seagull::basic::Viewer > viewer = seagull::basic::Viewer::Make( res, cert, ask_position_sec, tsfile.get() );
-        //viewer->view();
+
         rc = app.exec();
     }
     catch( const std::logic_error& err ) {
