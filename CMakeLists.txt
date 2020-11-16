@@ -21,6 +21,6 @@ FILE(GLOB SOURCES ${PROJECT_SOURCE_DIR}/*.h ${PROJECT_SOURCE_DIR}/*.cpp
                   ${PROJECT_SOURCE_DIR}/rtsp/*.h ${PROJECT_SOURCE_DIR}/rtsp/*.cpp
                   ${PROJECT_SOURCE_DIR}/h264/*.h ${PROJECT_SOURCE_DIR}/h264/*.cpp)
 
-add_executable(dmplayer  ${SOURCES} rtsp/dmmediasession.cpp rtsp/dmmediasession.h h264/dmmediasession.cpp h264/dmmediasession.h h264/dmdecoder.cpp h264/dmdecoder.h dmqplayer.cpp dmqplayer.h core/dmbaseplayer.cpp core/dmbaseplayer.h)
+add_executable(dmplayer  ${SOURCES} rtsp/dmmediasession.cpp rtsp/dmmediasession.h h264/dmmediasession.cpp h264/dmmediasession.h h264/dmdecoder.cpp h264/dmdecoder.h dmqplayer.cpp dmqplayer.h core/dmbaseplayer.cpp core/dmbaseplayer.h h264/dmbitreader.cpp h264/dmbitreader.h h264/dmsps.cpp h264/dmsps.h)
 target_link_libraries(dmplayer QtCore QtGui avformat avcodec avutil avresample swscale ssl crypto pthread asound z X11)
 set_target_properties(dmplayer PROPERTIES AUTOMOC true)

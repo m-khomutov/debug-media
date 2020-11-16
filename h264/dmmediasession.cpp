@@ -5,6 +5,7 @@
 #include "dmmediasession.h"
 #include "dmnalu.h"
 #include "core/dmbase64.h"
+#include "h264/dmsps.h"
 
 std::ostream& operator <<( std::ostream& out, const dm::rtp::Header & h );
 std::ostream& operator <<( std::ostream& out, const dm::h264::Header & h );
@@ -24,7 +25,8 @@ dm::h264::MediaSession::MediaSession( const rtsp::MediaDescription & description
         size_t p2 = m_media_description.fmtp.find( ';', pos );
         f_set_sprop_parameter_sets( m_media_description.fmtp.substr( pos+21, p2-pos-21) );
     }
-    m_player = BasePlayer::create( 640, 480 );
+    Sps sps( m_sps.data()+sizeof(annexbdiv), m_sps.size()-sizeof(annexbdiv) );
+    m_player = BasePlayer::create( sps.width(), sps.height() );
     m_player->run();
 }
 
