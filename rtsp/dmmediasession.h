@@ -57,19 +57,5 @@ namespace dm {
             uint8_t m_interleaved_channel[2];
             rtp::Header m_rtp_header;
         };
-
-        class H264Session : public MediaSession {
-        public:
-            H264Session( const MediaDescription & description );
-
-            void receiveInterleaved( const uint8_t * data, size_t datasz ) override;
-
-        private:
-            std::vector< uint8_t > m_sps;
-            std::vector< uint8_t > m_pps;
-
-        private:
-            void f_set_sprop_parameter_sets( const std::string & sprop );
-        };
     }  // namespace rtsp
 }  // namespace dm

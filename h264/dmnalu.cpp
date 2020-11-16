@@ -40,9 +40,11 @@ std::ostream& operator <<( std::ostream& out, const dm::h264::Header & hdr ) {
             break;
         case dm::h264::FU_A:
             out << "FU_A";
+            out << " fu{ " << int(hdr.fuhdr.start) << " " << int(hdr.fuhdr.end) << " " << int(hdr.fuhdr.type) << "}";
             break;
         case dm::h264::FU_B:
             out << "FU_B";
+            out << " fu{ " << int(hdr.fuhdr.start) << " " << int(hdr.fuhdr.end) << " " << int(hdr.fuhdr.type) << "}";
             break;
     }
     return out;
