@@ -18,6 +18,19 @@ namespace dm {
                 uint16_t size;
                 uint8_t * data;
             };
+            struct DigestAuthentication {
+                std::string realm;
+                std::string nonce;
+                std::string stale;
+
+                void parse( const char * header );
+
+            };
+            struct BasicAuthentication {
+                std::string realm;
+
+                void parse( const char * header );
+            };
 
             Connection( const char * source, const char * path );
             ~Connection();
@@ -59,6 +72,9 @@ namespace dm {
             std::vector< std::string > m_headers;
             std::set< std::string > m_options;
             std::mutex m_mutex;
+
+            DigestAuthentication m_digest_authentication;
+            BasicAuthentication m_basic_authentication;
 
             SessionDescription m_session_description;
             std::vector< std::shared_ptr< MediaSession > > m_media_sessions;

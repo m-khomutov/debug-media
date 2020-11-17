@@ -33,6 +33,39 @@
   }
 }
 */
+void dm::rtsp::Connection::DigestAuthentication::parse( const char *header ) {
+    const char * ptr = strstr( header, "realm=\"" );
+    if( ptr ) {
+        const char * p = strchr( ptr+8, '"' );
+        if( p ) {
+            realm.assign( ptr + 7, p - (ptr + 7) );
+            ptr = strstr( p, "nonce=\"" );
+            if( ptr ) {
+                p = strchr( ptr+8, '"' );
+                if( p ) {
+                    nonce.assign( ptr + 7, p - (ptr + 7) );
+                    ptr = strstr( p, "stale=\"" );
+                    if( ptr ) {
+                        p = strchr( ptr+8, '"' );
+                        if( p )
+                            stale.assign( ptr + 7, p - (ptr + 7) );
+                    }
+                }
+            }
+        }
+    }
+}
+void dm::rtsp::Connection::BasicAuthentication::parse( const char *header ) {
+    const char * ptr = strstr( header, "realm=\"" );
+    if( ptr ) {
+        const char * p = strchr( ptr+8, '"' );
+        if( p )
+            realm.assign( ptr + 7, p - (ptr + 7) );
+    }
+}
+
+
+
 const char * dm::rtsp::Connection::kVersion      = "RTSP/1.0";
 const char * dm::rtsp::Connection::kOptions      = "OPTIONS ";
 const char * dm::rtsp::Connection::kDescribe     = "DESCRIBE ";
@@ -164,7 +197,13 @@ int dm::rtsp::Connection::askSdp() {
         std::cerr << "> " << s;
         if( !ret )
             ret = resultCode( s );
-
+        if( ret == 401 /*Unauthorized*/ ) {
+            size_t pos;
+            if( s.find( "WWW-Authenticate: Digest " ) != std::string::npos )
+                m_digest_authentication.parse( s.c_str() );
+            if( s.find( "WWW-Authenticate: Basic " ) != std::string::npos )
+                m_basic_authentication.parse( s.c_str() );
+        }
         if (s[1] == '=' && ret == 200 ) {
             switch( s[0] ) {
                 case 'v':
@@ -185,10 +224,11 @@ int dm::rtsp::Connection::askSdp() {
     for( auto d : mds )
         m_media_sessions.push_back( std::shared_ptr< MediaSession >( MediaSession::create( d, this ) ) );
 
-    std::cerr << m_session_description << std::endl;
-    for( auto session : m_media_sessions )
-        std::cerr << *session->description() << std::endl;
-
+    if( ret == 200 ) {
+        std::cerr << m_session_description << std::endl;
+        for( auto session : m_media_sessions )
+            std::cerr << *session->description() << std::endl;
+    }
     return ret;
 }
 

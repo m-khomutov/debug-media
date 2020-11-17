@@ -26,21 +26,52 @@ dm::BaseReceiver::BaseReceiver( const char * source, const char * cert )
   m_ip( INADDR_ANY ),
   m_port( INADDR_ANY ) {
 
-    enum {kWholeUrl, kProto, kHost, kPort, kPath};
-    std::regex reg("(.*)://(.*):([[:d:]]{2,6})/(.*)"); // proto://host:port/path
+    if( strchr( source, '@' ) ) {
+        f_parse_authenticated_url( source );
+    }
+    else
+        f_parse_url( source );
 
-    std::cmatch match_result;
-    if( !std::regex_match( source, match_result, reg ) )
-        throw std::logic_error(std::string("[invalid url proto://host:port/path] ") + std::string( source ) );
-
-    m_url = match_result[kProto].str() + "://" + match_result[kHost].str() + ":" + match_result[kPort].str();
-    m_path += match_result[kPath].str();
-    m_port  = std::stoi(match_result[kPort]);
-
-    hostent *hp = gethostbyname( match_result[kHost].str().c_str() );
+    hostent *hp = gethostbyname( m_host.c_str() );
     int i = 0;
     while( hp->h_addr_list[ i ] ) {
         m_ip = (*(in_addr*)(hp->h_addr_list[ i ])).s_addr;
         ++ i;
     }
+}
+
+void dm::BaseReceiver::f_parse_authenticated_url( const char * url ) {
+    enum {kWholeUrl, kProto, kUser, kPassword, kHost, kPort, kPath};
+
+    std::regex reg("([a-z]*)://([[:graph:]]*):([[:graph:]]*)@([0-9\\.]*)([:0-9]*)/(.*)"); // proto://user:password@host[:port]/path
+    std::cmatch res;
+    if( !std::regex_match( url, res, reg ) )
+        throw std::logic_error(std::string("[invalid url proto://user:password@host:port/path] ") + std::string( url ) );
+
+    if( !res[kPort].str().empty() )
+        m_port  = strtol(res[kPort].str().c_str()+1, nullptr, 10 );
+    if( !m_port )
+        m_port = 554;
+    m_host = res[kHost].str();
+    m_user = res[kUser].str();
+    m_password = res[kPassword].str();
+    m_url = res[kProto].str() + "://" + m_host + ":" + std::to_string( m_port );
+    m_path += res[kPath].str();
+}
+
+void dm::BaseReceiver::f_parse_url( const char * url ) {
+    enum {kWholeUrl, kProto, kHost, kPort, kPath};
+    std::regex reg("([a-z]*)://([0-9\\.]*)([:0-9]*)/(.*)"); // proto://host[:port]/path
+
+    std::cmatch res;
+    if( !std::regex_match( url, res, reg ) )
+        throw std::logic_error(std::string("[invalid url proto://host:port/path] ") + std::string( url ) );
+
+    if( !res[kPort].str().empty() )
+        m_port  = strtol(res[kPort].str().c_str()+1, nullptr, 10 );
+    if( !m_port )
+        m_port = 554;
+    m_host = res[kHost].str();
+    m_url = res[kProto].str() + "://" + m_host + ":" + std::to_string( m_port );
+    m_path += res[kPath].str();
 }
