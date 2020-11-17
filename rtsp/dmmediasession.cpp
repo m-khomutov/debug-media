@@ -73,7 +73,7 @@ void dm::rtsp::MediaSession::receiveInterleaved( const uint8_t *data, size_t dat
         if( !m_range.first )
             m_range.first = m_rtp_header.timestamp;
         m_range.second = m_rtp_header.timestamp;
-        m_position = (m_range.second - m_range.first) / 100000;
+        m_position = (m_range.second - m_range.first) / 90000;
     }
 }
 

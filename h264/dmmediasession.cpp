@@ -32,7 +32,7 @@ dm::h264::MediaSession::MediaSession( const rtsp::MediaDescription & description
 
 void dm::h264::MediaSession::receiveInterleaved( const uint8_t *data, size_t datasz ) {
     rtsp::MediaSession::receiveInterleaved( data, datasz );
-    h264::Header h264_hdr(m_rtp_header.payload );
+    h264::Header h264_hdr(m_rtp_header.payload);
     //std::cerr << "rtp: " << m_rtp_header << std::endl;
     //std::cerr << "nalu: " << h264_hdr << " : sz=" << datasz - (h264_hdr.payload-data) << std::endl;
 

@@ -101,12 +101,6 @@ void dm::q::Player::f_pause() {
 void dm::q::Player::f_resume() {
     m_session->connection()->resume( m_position );
 }
-void dm::q::Player::f_seek_resume() {
-    m_session->connection()->resume( m_session->position() + m_seek_step );
-}
-void dm::q::Player::f_seekback_resume() {
-    m_session->connection()->resume( m_session->position() - m_seek_step );
-}
 void dm::q::Player::f_set_seek_step() {
     bool ok;
     double value = QInputDialog::getDouble( nullptr, QString::fromUtf8("шаг смещения"),
@@ -116,11 +110,11 @@ void dm::q::Player::f_set_seek_step() {
 }
 void dm::q::Player::f_seek_forward() {
     m_session->connection()->pause();
-    QTimer::singleShot( 500, this, SLOT( f_seek_resume()) );
+    QTimer::singleShot( 500, this, SLOT( f_resume()) );
 }
 void dm::q::Player::f_seek_backward() {
     m_session->connection()->pause();
-    QTimer::singleShot( 500, this, SLOT( f_seekback_resume()) );
+    QTimer::singleShot( 500, this, SLOT( f_resume()) );
 }
 
 void dm::q::Player::f_show_keyusage_box() {
@@ -186,9 +180,11 @@ void dm::q::Player::keyReleaseEvent( QKeyEvent * event ) {
             f_set_seek_step();
             break;
         case Qt::Key_Right:
+            m_position = m_session->position() + m_seek_step;
             f_seek_forward();
             break;
         case Qt::Key_Left:
+            m_position = m_session->position() - m_seek_step;
             f_seek_backward();
             break;
         case Qt::Key_Q:

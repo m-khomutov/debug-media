@@ -33,7 +33,7 @@
   }
 }
 */
-const char * dm::rtsp::Connection::kVersion      = " RTSP/1.0";
+const char * dm::rtsp::Connection::kVersion      = "RTSP/1.0";
 const char * dm::rtsp::Connection::kOptions      = "OPTIONS ";
 const char * dm::rtsp::Connection::kDescribe     = "DESCRIBE ";
 const char * dm::rtsp::Connection::kSetup        = "SETUP ";
@@ -72,8 +72,8 @@ std::string dm::rtsp::Connection::line() {
 
 int dm::rtsp::Connection::resultCode( const std::string& line ) {
     size_t pos;
-    if( (pos = line.find( &kVersion[1] )) != std::string::npos )
-        return std::stoi( line.substr( pos + strlen(kVersion) ) );
+    if( (pos = line.find( kVersion )) != std::string::npos )
+        return std::stoi( line.substr( pos + strlen(kVersion) + 1 ) );
     return -1;
 }
 
@@ -83,11 +83,17 @@ int dm::rtsp::Connection::response() {
         std::string s = line();
         if( s.empty() )
             break;
-        if( !ret )
-            ret = resultCode( s );
-        if( s.find( "Range: npt=" ) != std::string::npos )
-            setRange( s );
-        std::cerr << "> " << s << std::endl;
+        size_t  p = s.find( kVersion );
+        if( p != std::string::npos ) {
+            s = s.substr( p );
+            if( !ret )
+                ret = resultCode( s );
+            if( s.find( "Range: npt=" ) != std::string::npos )
+                setRange( s );
+            std::cerr << "> " << s;
+        }
+        else if( ret && ::isalpha( s[0] ) )
+            std::cerr << "> " << s;
     }
     return ret;
 }
@@ -95,7 +101,7 @@ int dm::rtsp::Connection::response() {
 int dm::rtsp::Connection::askOptions() {
     std::lock_guard< std::mutex > lk( m_mutex );
 
-    m_protoline = std::string(kOptions) + m_session->source() + std::string(kVersion);
+    m_protoline = std::string(kOptions) + m_session->source() + std::string(" ") + std::string(kVersion);
     m_headers.clear();
     m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
     m_headers.push_back( kUserAgent );
@@ -135,7 +141,7 @@ int dm::rtsp::Connection::askOptions() {
 int dm::rtsp::Connection::askSdp() {
     std::lock_guard<std::mutex> lk( m_mutex );
 
-    m_protoline = std::string(kDescribe) + m_session->source() + m_path + std::string(kVersion);
+    m_protoline = std::string(kDescribe) + m_session->source() + m_path + std::string(" ") + std::string(kVersion);
     m_headers.clear();
     m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq ) );
     m_headers.push_back( "Accept: application/sdp" );
@@ -200,10 +206,10 @@ int dm::rtsp::Connection::askSetup( MediaSession & media/*, basic::Viewer* viewe
             m_headers.push_back( std::string( "Session: ") + m_session_id );
 
         if( media.description()->control.find("rtsp://") != std::string::npos) {
-            m_protoline = std::string(kSetup) + media.description()->control + std::string(kVersion);
+            m_protoline = std::string(kSetup) + media.description()->control + std::string(" ") + std::string(kVersion);
         }
         else
-            m_protoline = std::string(kSetup) + m_session->source() + m_path + std::string("/") + media.description()->control + std::string(kVersion);
+            m_protoline = std::string(kSetup) + m_session->source() + m_path + std::string("/") + media.description()->control + std::string(" ") + std::string(kVersion);
 
         std::cerr << "< " << m_protoline << std::endl;
         for( auto hdr: m_headers )
@@ -221,6 +227,8 @@ int dm::rtsp::Connection::askSetup( MediaSession & media/*, basic::Viewer* viewe
             if( s.find("Transport: " ) == 0 ) {
                 try {
                     media.setTransport( s.substr(11).c_str() );
+                    if( media.channel() > m_max_channel )
+                        m_max_channel = media.channel();
                 } catch( const std::logic_error& err ) {
                     std::cerr << "[MEDIA ERROR] " << err.what() << std::endl;
                     return 404;
@@ -231,11 +239,7 @@ int dm::rtsp::Connection::askSetup( MediaSession & media/*, basic::Viewer* viewe
             std::cerr << "> " << s;
         }
     }
-
-  /*if (ret == basic::Session::OK) { //&& media->mode() == "PLAY" )
-    media->setDecoder(viewer);
-  }*/
-  return ret;
+    return ret;
 }
 
 void dm::rtsp::Connection::askPlay( float pos, float scale ) {
@@ -369,9 +373,10 @@ void dm::rtsp::Connection::askTeardown(const std::string& id) {
     std::cerr << "\n\t* * *\n\n";
 
     m_session->putRequest( m_protoline.c_str(), m_headers );
+    response();
 }
 
-void dm::rtsp::Connection::open( /*basic::Viewer* viewer */ ) {
+void dm::rtsp::Connection::open() {
     if( askOptions() != BaseSession::OK )
         throw std::logic_error( "[RTSP] failed to get options" );
     if( askSdp() != BaseSession::OK )
@@ -409,8 +414,13 @@ int dm::rtsp::Connection::receive( fd_set* rfds, InterleavedBuffer * buffer ) {
                             std::cerr << c;
                         break;
                     case kWaitingChannel:
-                        buffer->channel = c;
-                        state = kWaitingSize0;
+                        if( uint8_t(c) > m_max_channel ) {
+                            state = kWaitingSign;
+                        }
+                        else {
+                            buffer->channel = c;
+                            state = kWaitingSize0;
+                        }
                         break;
                     case kWaitingSize0:
                         buffer->size = (uint8_t(c) << 8);

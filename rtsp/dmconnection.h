@@ -63,6 +63,7 @@ namespace dm {
             SessionDescription m_session_description;
             std::vector< std::shared_ptr< MediaSession > > m_media_sessions;
             std::string m_session_id;
+            uint8_t m_max_channel;
             double m_range_begin{0.};
             double m_range_end{0.};
 

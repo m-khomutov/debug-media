@@ -54,8 +54,6 @@ namespace dm {
             void f_scale();
             void f_pause();
             void f_resume();
-            void f_seek_resume();
-            void f_seekback_resume();
             void f_set_seek_step();
             void f_seek_forward();
             void f_seek_backward();

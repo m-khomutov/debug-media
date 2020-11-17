@@ -48,7 +48,7 @@ dm::h264::Decoder::Decoder() {
     m_codecCtx->codec_id   = AV_CODEC_ID_H264;
     m_codecCtx->pix_fmt    = AV_PIX_FMT_YUV420P;
     m_codecCtx->codec_tag  = (('H')|('2' << 8)|('6' << 16)|('4' << 24));
-    m_codecCtx->thread_count = std::thread::hardware_concurrency();
+    m_codecCtx->thread_count = 1;//std::thread::hardware_concurrency();
 
     m_avFrame.reset( av_frame_alloc() );
     if( !m_avFrame.get() )
