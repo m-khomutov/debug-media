@@ -5,6 +5,6 @@
 #include "dmbaseplayer.h"
 #include "dmqplayer.h"
 
-dm::BasePlayer * dm::BasePlayer::create( int width, int height ) {
-    return new q::Player( width, height, 10 );
+dm::BasePlayer * dm::BasePlayer::create( int width, int height, rtsp::MediaSession * session ) {
+    return new q::Player( session, width, height, 10 );
 }

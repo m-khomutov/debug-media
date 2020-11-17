@@ -177,7 +177,7 @@ int dm::rtsp::Connection::askSdp() {
         }
     }
     for( auto d : mds )
-        m_media_sessions.push_back( std::shared_ptr< MediaSession >( MediaSession::create( d ) ) );
+        m_media_sessions.push_back( std::shared_ptr< MediaSession >( MediaSession::create( d, this ) ) );
 
     std::cerr << m_session_description << std::endl;
     for( auto session : m_media_sessions )
@@ -238,19 +238,18 @@ int dm::rtsp::Connection::askSetup( MediaSession & media/*, basic::Viewer* viewe
   return ret;
 }
 
-void dm::rtsp::Connection::askPlay( int pos, float scale ) {
+void dm::rtsp::Connection::askPlay( float pos, float scale ) {
     std::lock_guard< std::mutex > lk( m_mutex );
 
     m_headers.clear();
-    m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
-    m_headers.push_back( kUserAgent);
-    m_headers.push_back( std::string("Session: ") + m_session_id );
- 
     if( pos )
         m_headers.push_back( std::string( "Range: npt=" ) + std::to_string( pos ) + std::string( "-" ) );
     if( scale )
         m_headers.push_back( std::string("Scale: ") + std::to_string(scale) );
- 
+    m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
+    m_headers.push_back( kUserAgent);
+    m_headers.push_back( std::string("Session: ") + m_session_id );
+
     m_protoline = std::string(kPlay) + std::string(" ") + m_session->source() + m_path + std::string(" ") + std::string(kVersion);
     std::cerr << "< " << m_protoline << std::endl;
     for( auto hdr : m_headers )
@@ -260,7 +259,7 @@ void dm::rtsp::Connection::askPlay( int pos, float scale ) {
     m_session->putRequest( m_protoline.c_str(), m_headers );
 }
 
-void dm::rtsp::Connection::pause( float pause_point ) {
+void dm::rtsp::Connection::pause() {
     std::lock_guard<std::mutex> lk( m_mutex );
 
     int ret = 0;
@@ -280,7 +279,7 @@ void dm::rtsp::Connection::pause( float pause_point ) {
     }
 }
 
-void dm::rtsp::Connection::getParameter( std::string param ) {
+void dm::rtsp::Connection::getParameter( const std::string & param ) {
     std::lock_guard<std::mutex> lk( m_mutex );
 
     if( m_session_id.empty() )
@@ -302,12 +301,12 @@ void dm::rtsp::Connection::getParameter( std::string param ) {
     m_session->putRequest( m_protoline.c_str(), m_headers, body.c_str() );
 }
 
-void dm::rtsp::Connection::setParameter( const char * param ) {
+void dm::rtsp::Connection::setParameter( const std::string & param ) {
   std::lock_guard< std::mutex > lk( m_mutex );
 
     if( m_session_id.empty() )
         return;
-    std::string body = std::string( "\r\n" ) + std::string( param );
+    std::string body = std::string( "\r\n" ) + param;
 
     m_headers.clear();
     m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
@@ -323,12 +322,6 @@ void dm::rtsp::Connection::setParameter( const char * param ) {
     std::cerr << "\n\t* * *\n\n";
 
     m_session->putRequest( m_protoline.c_str(), m_headers, body.c_str() );
-}
-
-void dm::rtsp::Connection::setPosition( int pos ) {
-    if( !pos )
-        pos = m_range.first;
-    askPlay( pos );
 }
 
 void dm::rtsp::Connection::scale( float sc ) {
@@ -448,8 +441,8 @@ void dm::rtsp::Connection::setRange( std::string & line ) {
     size_t pos_ap = line.find('-');
 
     if( pos_eq != std::string::npos && pos_ap != std::string::npos ) {
-        m_range.first = std::stof( line.substr( pos_eq + 1, pos_ap - pos_eq - 1 ) );
+        m_range_begin = std::stof( line.substr( pos_eq + 1, pos_ap - pos_eq - 1 ) );
         if( pos_ap < line.size() - 3 )
-            m_range.second = std::stof( line.substr( pos_ap + 1 ) );
+            m_range_end = std::stof( line.substr( pos_ap + 1 ) );
     }
 }

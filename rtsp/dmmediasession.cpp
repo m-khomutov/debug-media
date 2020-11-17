@@ -51,17 +51,30 @@ dm::rtp::Header::Header( const uint8_t * data ) {
 }
 
 
-dm::rtsp::MediaSession * dm::rtsp::MediaSession::create( const MediaDescription &description ) {
+dm::rtsp::MediaSession * dm::rtsp::MediaSession::create( const MediaDescription &description, Connection * connection ) {
     if( description.rtpmap.find( "H264" ) != std::string::npos ) {
-        return new h264::MediaSession( description );
+        return new h264::MediaSession( description, connection );
     }
-    return new MediaSession( description );
+    return new MediaSession( description, connection );
 }
 
-dm::rtsp::MediaSession::MediaSession( const MediaDescription & description ) :m_media_description( description ) {}
+dm::rtsp::MediaSession::MediaSession( const MediaDescription & description, Connection * connection )
+: m_media_description( description ),m_connection( connection ) {
+    size_t pos = m_media_description.rtpmap.find( ':' );
+    m_payload_type = strtol( description.rtpmap.substr( pos+1 ).c_str(), nullptr, 10 );
+
+    m_range.first = 0ul;
+    m_range.second = 0ul;
+}
 
 void dm::rtsp::MediaSession::receiveInterleaved( const uint8_t *data, size_t datasz ) {
     m_rtp_header = rtp::Header( data );
+    if( m_rtp_header.payload_type == m_payload_type ) {
+        if( !m_range.first )
+            m_range.first = m_rtp_header.timestamp;
+        m_range.second = m_rtp_header.timestamp;
+        m_position = (m_range.second - m_range.first) / 100000;
+    }
 }
 
 void dm::rtsp::MediaSession::setTransport( const char* line ) {

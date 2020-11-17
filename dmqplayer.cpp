@@ -3,6 +3,8 @@
 //
 
 #include "dmqplayer.h"
+#include "rtsp/dmmediasession.h"
+#include "rtsp/dmconnection.h"
 
 #include <QtGui/QPainter>
 #include <QtCore/QThread>
@@ -12,8 +14,8 @@
 #include <QtGui/QLineEdit>
 #include <QtCore/QDebug>
 
-dm::q::Player::Player( int width, int height, int ask_position_sec )
-: m_image(new QImage() ),m_rgbframe( rgb::Geometry( width, height, AV_PIX_FMT_RGB24 ) ) {
+dm::q::Player::Player( rtsp::MediaSession * session, int width, int height, int ask_position_sec )
+: m_session( session ),m_image(new QImage() ),m_rgbframe( rgb::Geometry( width, height, AV_PIX_FMT_RGB24 ) ) {
     setAutoFillBackground(false);
     setAttribute( Qt::WA_NoSystemBackground, true );
     setAttribute( Qt::WA_PaintOnScreen,      true );
@@ -54,7 +56,71 @@ void dm::q::Player::onFrame( AVFrame *avframe ) {
 }
 
 void dm::q::Player::f_ask_position() {
-    //m_receiver->askPosition();
+    m_session->connection()->getParameter( "position" );
+}
+void dm::q::Player::f_set_position() {
+    bool ok;
+    double pos = m_session->position();
+    double value = QInputDialog::getDouble(nullptr, QString::fromUtf8("позиционирование"),
+                                            QString::fromUtf8("значение"), pos, 0, pos+1000, 1, &ok );
+    if( ok ) {
+        m_position = value;
+        m_session->connection()->pause();
+        QTimer::singleShot( 500, this, SLOT( f_resume()) );
+    }
+}
+void dm::q::Player::f_ask_parameter() {
+    bool ok;
+    QString text = QInputDialog::getText(nullptr, QString::fromUtf8("запросить значение параметра"),
+                                         QString::fromUtf8("название"),
+                                         QLineEdit::Normal,
+                                          "", &ok);
+    if( ok && !text.isEmpty() )
+        m_session->connection()->getParameter( std::string(text.toLocal8Bit()) );
+}
+void dm::q::Player::f_set_parameter() {
+    bool ok;
+    QString text = QInputDialog::getText(nullptr, QString::fromUtf8("установить значение параметра"),
+                                         QString::fromUtf8("название: значение"),
+                                         QLineEdit::Normal,
+                                         ": ", &ok);
+    if( ok && !text.isEmpty() )
+        m_session->connection()->setParameter( std::string(text.toLocal8Bit()) );
+}
+void dm::q::Player::f_scale() {
+    bool ok;
+    double value = QInputDialog::getDouble(nullptr, QString::fromUtf8("скорость"),
+                                                QString::fromUtf8("значение"), 1.0, -32, 32, 2, &ok );
+    if( ok && value != .0 )
+        m_session->connection()->scale( value );
+}
+void dm::q::Player::f_pause() {
+    m_session->connection()->pause();
+
+}
+void dm::q::Player::f_resume() {
+    m_session->connection()->resume( m_position );
+}
+void dm::q::Player::f_seek_resume() {
+    m_session->connection()->resume( m_session->position() + m_seek_step );
+}
+void dm::q::Player::f_seekback_resume() {
+    m_session->connection()->resume( m_session->position() - m_seek_step );
+}
+void dm::q::Player::f_set_seek_step() {
+    bool ok;
+    double value = QInputDialog::getDouble( nullptr, QString::fromUtf8("шаг смещения"),
+                                       QString::fromUtf8("значение"), m_seek_step, 0., m_seek_step+1000., 1, &ok );
+    if( ok && value >=1. )
+        m_seek_step = value;
+}
+void dm::q::Player::f_seek_forward() {
+    m_session->connection()->pause();
+    QTimer::singleShot( 500, this, SLOT( f_seek_resume()) );
+}
+void dm::q::Player::f_seek_backward() {
+    m_session->connection()->pause();
+    QTimer::singleShot( 500, this, SLOT( f_seekback_resume()) );
 }
 
 void dm::q::Player::f_show_keyusage_box() {
@@ -62,13 +128,15 @@ void dm::q::Player::f_show_keyusage_box() {
     msgBox.setText("F1 - вывод справки\n"
                    "F2 - запрос позиции\n"
                    "F3 - установка позиции\n"
-                   "F4 - установка параметра\n"
-                   "F5 - установка скорости\n"
-                   "F6 - пауза в воспроизведении\n"
-                   "F7 - восстановление воспроизведения после паузы\n"
-                   "Left - смещение позиции на 10 сек. вперед\n"
-                   "Right - смещение позиции на 10 сек. назад\n"
-                   "F10 - выход");
+                   "F4 - запрос параметра\n"
+                   "F5 - установка параметра\n"
+                   "F6 - установка скорости\n"
+                   "F7 - пауза в воспроизведении\n"
+                   "F8 - восстановление воспроизведения после паузы\n"
+                   "F9 - установка шага смещения (по умолчанию 10 сек.)"
+                   "Left - смещение позиции на шаг вперед\n"
+                   "Right - смещение позиции на шаг назад\n"
+                   "q - выход");
     msgBox.exec();
 }
 
@@ -80,8 +148,10 @@ void dm::q::Player::showEvent( QShowEvent *event ) {
 void dm::q::Player::paintEvent( QPaintEvent *event ) {
     std::lock_guard< std::mutex > lk( m_frame_mutex );
 
-    QPainter painter( this );
-    painter.drawImage(0, 0, m_image->scaled(this->size()));
+    if( !m_image->isNull() ) {
+        QPainter painter( this );
+        painter.drawImage(0, 0, m_image->scaled(this->size()));
+    }
     event->accept();
 }
 
@@ -91,34 +161,39 @@ void dm::q::Player::keyReleaseEvent( QKeyEvent * event ) {
             f_show_keyusage_box();
             break;
         case Qt::Key_F2:
-            //m_receiver->askPosition();
+            f_ask_position();
             break;
         case Qt::Key_F3:
-            //m_receiver->setPosition();
+            f_set_position();
             break;
         case Qt::Key_F4:
-            //m_receiver->setParameter();
+            f_ask_parameter();
             break;
         case Qt::Key_F5:
-            //m_receiver->setScale();
+            f_set_parameter();
             break;
         case Qt::Key_F6:
-            //m_receiver->pause();
+            f_scale();
             break;
         case Qt::Key_F7:
-            //m_receiver->resume();
+            f_pause();
+            break;
+        case Qt::Key_F8:
+            m_position = 0.;
+            f_resume();
+            break;
+        case Qt::Key_F9:
+            f_set_seek_step();
             break;
         case Qt::Key_Right:
-            //m_receiver->moveForward();
+            f_seek_forward();
             break;
         case Qt::Key_Left:
-            //m_receiver->moveBackward();
+            f_seek_backward();
             break;
-        case Qt::Key_F10:
-            //m_receiver->stop();
+        case Qt::Key_Q:
             qApp->quit();
             break;
-
     }
     event->accept();
 }

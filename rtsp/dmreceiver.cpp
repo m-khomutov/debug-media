@@ -16,37 +16,6 @@ dm::rtsp::Receiver::~Receiver() {
     }
 }
 
-void dm::rtsp::Receiver::updateStream () {
-////   m_conn.ping();
-
-//   m_viewer->updateCachedDuration( basic::Receiver::CACHE_SIZE_MSEC + 5. );
-}
-
-void dm::rtsp::Receiver::askPosition () {
-   m_connection.getParameter( std::string( "position" ) );
-}
-
-void dm::rtsp::Receiver::setPosition( double pos ) {
-   m_connection.setPosition( (int)pos );
-}
-
-void dm::rtsp::Receiver::setParameter( const char* param ) {
-   m_connection.setParameter( param );
-}
-
-void dm::rtsp::Receiver::scale( float value ) {
-   m_connection.scale( value );
-}
-
-void dm::rtsp::Receiver::pause( float value ) {
-   m_connection.pause( value );
-}
-
-void dm::rtsp::Receiver::resume( float position ) {
-   m_connection.resume( position );
-}
-
-
 void dm::rtsp::Receiver::run () {
     try {
         m_connection.open();

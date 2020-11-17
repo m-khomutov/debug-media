@@ -7,10 +7,13 @@
 #include <h264/dmdecoder.h>
 
 namespace dm {
+    namespace rtsp {
+        class Connection;
+    }
     namespace h264 {
         class MediaSession : public rtsp::MediaSession {
         public:
-            MediaSession( const rtsp::MediaDescription & description );
+            MediaSession( const rtsp::MediaDescription & description, rtsp::Connection * connection );
 
             void receiveInterleaved( const uint8_t * data, size_t datasz ) override;
 

@@ -8,9 +8,12 @@ extern "C" {
 };
 
 namespace dm {
+    namespace rtsp {
+        class MediaSession;
+    }
     class BasePlayer {
     public:
-        static BasePlayer * create( int width, int height );
+        static BasePlayer * create( int width, int height, rtsp::MediaSession * session );
 
         virtual ~BasePlayer() = default;
 

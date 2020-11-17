@@ -21,7 +21,6 @@ dm::BaseReceiver* dm::BaseReceiver::create( const char * source, const char* cer
 }
 
 dm::BaseReceiver::BaseReceiver( const char * source, const char * cert )
-   //: m_viewer(viewer),
 : m_path( "/" ),
   m_cert( cert ? std::string( cert ) : std::string( "" ) ),
   m_ip( INADDR_ANY ),
@@ -44,8 +43,4 @@ dm::BaseReceiver::BaseReceiver( const char * source, const char * cert )
         m_ip = (*(in_addr*)(hp->h_addr_list[ i ])).s_addr;
         ++ i;
     }
-}
-
-double dm::BaseReceiver::duration () {
-   return 0.; //m_viewer->cachedDuration();
 }
