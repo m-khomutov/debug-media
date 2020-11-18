@@ -1,21 +1,17 @@
 #include "dmbasereceiver.h"
-//#include "seagull_viewer.h"
-//#include "../http/seagull_receiver.h"
-//#include "../hls/seagull_receiver.h"
 #include "rtsp/dmreceiver.h"
-//#include "../mp2ts/seagull_receiver.h"
 
 #include <regex>
 
 dm::BaseReceiver* dm::BaseReceiver::create( const char * source, const char* cert ) {
     /*if( strstr( url, "http://" )  == url ) {
-        return new seagull::http::Receiver( viewer, url, cert );
+        return new dm::http::Receiver( viewer, url, cert );
     }
     else if( strstr( url, "https://" ) == url ) {
-        return new seagull::hls::Receiver ( viewer, url, cert );
+        return new sdm::hls::Receiver ( viewer, url, cert );
     }
     else if( strstr( url, "mp2t://" ) == url ) {
-        return new seagull::mp2t::Receiver ( viewer, url, cert );
+        return new dm::mp2t::Receiver ( viewer, url, cert );
     }*/
     return new rtsp::Receiver( source, cert );
 }

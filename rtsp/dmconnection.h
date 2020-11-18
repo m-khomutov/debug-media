@@ -32,7 +32,7 @@ namespace dm {
                 void parse( const char * header );
             };
 
-            Connection( const char * source, const char * path );
+            Connection( const std::string & source, const std::string & path, const std::string & user, const std::string & passwd );
             ~Connection();
 
             void open();
@@ -66,7 +66,10 @@ namespace dm {
 
             int m_maxfd{-1};
             uint32_t m_cseq{0};
+            std::string m_url;
             std::string m_path;
+            std::string m_user;
+            std::string m_password;
 
             std::string m_protoline;
             std::vector< std::string > m_headers;
@@ -79,21 +82,27 @@ namespace dm {
             SessionDescription m_session_description;
             std::vector< std::shared_ptr< MediaSession > > m_media_sessions;
             std::string m_session_id;
+            std::string m_autholization_header;
             uint8_t m_max_channel;
             double m_range_begin{0.};
             double m_range_end{0.};
 
         private:
-            std::string line();
-            int resultCode( const std::string& );
-            int response();
-            void setRange( std::string& str );
+            void f_parse_authenticated_url( const char * url );
+            void f_parse_url( const char * url );
 
-            int askOptions();
-            int askSdp();
-            int askSetup( MediaSession & session/*, basic::Viewer* */ );
-            void askPlay( float position = 0., float scale = 0. );
-            void askTeardown(const std::string& id);
+            std::string f_line();
+            int f_result_code( const std::string& );
+            int f_response();
+            void f_set_range( std::string& str );
+            void f_prepare_basic_authorization();
+            std::string f_prepare_digest_authorization( const std::string & method, const std::string & url );
+
+            int f_ask_options();
+            int f_ask_sdp();
+            int f_ask_setup( MediaSession & session/*, basic::Viewer* */ );
+            void f_ask_play( float position = 0., float scale = 0. );
+            void f_ask_teardown(const std::string& id);
         };
     }  // namespace rtsp
 }  // namespace dm

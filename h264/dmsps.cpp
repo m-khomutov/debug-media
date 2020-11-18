@@ -5,7 +5,7 @@
 #include "dmsps.h"
 
 dm::h264::Sps::Sps( const uint8_t *data, size_t sz )
-: m_bitreader( data, sz ),
+: m_bitreader( data+1, sz-1 ), /*first byte - nalu header*/
   m_profile_idc( m_bitreader.byte() ),
   m_constraint_set0_flag( m_bitreader.bit() ),
   m_constraint_set1_flag( m_bitreader.bit() ),
@@ -16,7 +16,7 @@ dm::h264::Sps::Sps( const uint8_t *data, size_t sz )
   m_reserved_zero_2bits( m_bitreader.bits( 2 ) ),
   m_level_idc( m_bitreader.byte() ),
   m_seq_parameter_set_id( m_bitreader.uGolomb() ) {
-        if( f_has_chroma_format_idc() ) {
+    if( f_has_chroma_format_idc() ) {
         m_chroma_format_idc = m_bitreader.uGolomb();
         if( m_chroma_format_idc == 3 )
             m_separate_colour_plane_flag = m_bitreader.bit();
@@ -25,7 +25,16 @@ dm::h264::Sps::Sps( const uint8_t *data, size_t sz )
         m_qpprime_y_zero_transform_bypass_flag = m_bitreader.bit();
         m_seq_scaling_matrix_present_flag = m_bitreader.bit();
         if( m_seq_scaling_matrix_present_flag ) {
-            /*TODO ScalingList */
+            for( int i(0); i < ( m_chroma_format_idc != 3 ? 8 : 12 ); ++i ) {
+                bool seq_scaling_list_present_flag = m_bitreader.bit();
+                if( seq_scaling_list_present_flag ) {
+                    if( i < 6 ) {
+                        f_scaling_list( 16 );
+                    }
+                    else
+                        f_scaling_list( 64 );
+                }
+            }
         }
     }
     if( !m_separate_colour_plane_flag )
@@ -76,3 +85,16 @@ bool dm::h264::Sps::f_has_chroma_format_idc() {
          m_profile_idc == 134 || m_profile_idc == 135;
 }
 
+void dm::h264::Sps::f_scaling_list( size_t sizeOfScalingList ) {
+    int lastScale = 8;
+    int nextScale = 8;
+    for( int i(0); i < sizeOfScalingList; ++i ) {
+        if( nextScale != 0 ) {
+            int delta_scale = m_bitreader.sGolomb();
+            nextScale = ( lastScale + delta_scale + 256 ) % 256;
+            bool useDefaultScalingMatrixFlag = ( i == 0 && nextScale == 0 );
+        }
+        int scalingList =  nextScale == 0 ? lastScale : nextScale;
+        lastScale = scalingList;
+    }
+}

@@ -8,6 +8,7 @@ namespace dm {
     class BaseSession {
     public:
         static const int OK = 200;
+        static const int Unauthorized = 401;
 
         static BaseSession* create( const char * source, const char * pemkey =0 );
 

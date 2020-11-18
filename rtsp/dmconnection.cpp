@@ -1,4 +1,9 @@
 #include "dmconnection.h"
+#include "core/dmbase64.h"
+
+extern "C" {
+#include <openssl/md5.h>
+};
 
 #include <iostream>
 #include <regex>
@@ -33,6 +38,22 @@
   }
 }
 */
+namespace {
+    std::string md5sum( const uint8_t *buffer, size_t blen ) {
+        static const char hexDigits[ 17 ] = "0123456789abcdef";
+        unsigned char digest[ MD5_DIGEST_LENGTH ];
+        char digest_str[ 2 * MD5_DIGEST_LENGTH + 1 ];
+
+        MD5( (const unsigned char *)buffer, blen, digest );
+        for( int i(0); i < MD5_DIGEST_LENGTH; i++ ) {
+            digest_str[ i * 2 ] = hexDigits[ ( digest[ i ] >> 4 ) & 0xF ];
+            digest_str[ i * 2 + 1 ] = hexDigits[ digest[ i ] & 0xF ];
+        }
+        digest_str[ MD5_DIGEST_LENGTH * 2 ] = '\0';
+        return std::string( digest_str );
+    }
+}  // namespace
+
 void dm::rtsp::Connection::DigestAuthentication::parse( const char *header ) {
     const char * ptr = strstr( header, "realm=\"" );
     if( ptr ) {
@@ -67,30 +88,30 @@ void dm::rtsp::Connection::BasicAuthentication::parse( const char *header ) {
 
 
 const char * dm::rtsp::Connection::kVersion      = "RTSP/1.0";
-const char * dm::rtsp::Connection::kOptions      = "OPTIONS ";
-const char * dm::rtsp::Connection::kDescribe     = "DESCRIBE ";
-const char * dm::rtsp::Connection::kSetup        = "SETUP ";
-const char * dm::rtsp::Connection::kPlay         = "PLAY ";
-const char * dm::rtsp::Connection::kPause        = "PAUSE ";
-const char * dm::rtsp::Connection::kTeardown     = "TEARDOWN ";
-const char * dm::rtsp::Connection::kGetParameter = "GET_PARAMETER ";
-const char * dm::rtsp::Connection::kSetParameter = "SET_PARAMETER ";
+const char * dm::rtsp::Connection::kOptions      = "OPTIONS";
+const char * dm::rtsp::Connection::kDescribe     = "DESCRIBE";
+const char * dm::rtsp::Connection::kSetup        = "SETUP";
+const char * dm::rtsp::Connection::kPlay         = "PLAY";
+const char * dm::rtsp::Connection::kPause        = "PAUSE";
+const char * dm::rtsp::Connection::kTeardown     = "TEARDOWN";
+const char * dm::rtsp::Connection::kGetParameter = "GET_PARAMETER";
+const char * dm::rtsp::Connection::kSetParameter = "SET_PARAMETER";
 const char * dm::rtsp::Connection::kUserAgent    = "User-Agent: DebugMedia Player/1.0.0";
 //const char *seagull::rtsp::Connection::kUserAgent    = "User-Agent: Eltex STB (live555 based)";
 
-dm::rtsp::Connection::Connection( const char * source, const char * path )
-: m_session( BaseSession::create( source ) ),m_path( path ) {}
+dm::rtsp::Connection::Connection( const std::string & source, const std::string & path, const std::string & user, const std::string & passwd )
+: m_session( BaseSession::create( source.c_str() ) ),m_url( source + path ),m_path( path ),m_user( user ),m_password( passwd ) {}
 
 dm::rtsp::Connection::~Connection() {
     try {
-        askTeardown( m_session_id );
+        f_ask_teardown( m_session_id );
     }
     catch( const std::logic_error& ex ) {
         std::cerr << "[TERADOWN exception] " << ex.what() << std::endl;
     }
 }
 
-std::string dm::rtsp::Connection::line() {
+std::string dm::rtsp::Connection::f_line() {
     std::string ret;
     char ch;
     size_t sz = 0;
@@ -103,26 +124,26 @@ std::string dm::rtsp::Connection::line() {
     return ret;
 }
 
-int dm::rtsp::Connection::resultCode( const std::string& line ) {
+int dm::rtsp::Connection::f_result_code( const std::string& line ) {
     size_t pos;
     if( (pos = line.find( kVersion )) != std::string::npos )
         return std::stoi( line.substr( pos + strlen(kVersion) + 1 ) );
     return -1;
 }
 
-int dm::rtsp::Connection::response() {
+int dm::rtsp::Connection::f_response() {
     int ret = 0;
     while( true ) {
-        std::string s = line();
+        std::string s = f_line();
         if( s.empty() )
             break;
         size_t  p = s.find( kVersion );
         if( p != std::string::npos ) {
             s = s.substr( p );
             if( !ret )
-                ret = resultCode( s );
+                ret = f_result_code( s );
             if( s.find( "Range: npt=" ) != std::string::npos )
-                setRange( s );
+                f_set_range( s );
             std::cerr << "> " << s;
         }
         else if( ret && ::isalpha( s[0] ) )
@@ -131,10 +152,10 @@ int dm::rtsp::Connection::response() {
     return ret;
 }
 
-int dm::rtsp::Connection::askOptions() {
+int dm::rtsp::Connection::f_ask_options() {
     std::lock_guard< std::mutex > lk( m_mutex );
 
-    m_protoline = std::string(kOptions) + m_session->source() + std::string(" ") + std::string(kVersion);
+    m_protoline = std::string(kOptions) + std::string(" ") + m_url + std::string(" ") + std::string(kVersion);
     m_headers.clear();
     m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
     m_headers.push_back( kUserAgent );
@@ -149,11 +170,11 @@ int dm::rtsp::Connection::askOptions() {
 
     int ret = 0;
     while( true ) {
-        std::string s = line();
+        std::string s = f_line();
         if( s.empty() )
             break;
         if( !ret )
-            ret = resultCode( s );
+            ret = f_result_code( s );
         std::cerr << "> " << s;
 
         if( s.find( "Public: " ) != std::string::npos ) {
@@ -171,14 +192,19 @@ int dm::rtsp::Connection::askOptions() {
     return ret;
 }
 
-int dm::rtsp::Connection::askSdp() {
+int dm::rtsp::Connection::f_ask_sdp() {
     std::lock_guard<std::mutex> lk( m_mutex );
 
-    m_protoline = std::string(kDescribe) + m_session->source() + m_path + std::string(" ") + std::string(kVersion);
+    m_protoline = std::string(kDescribe) + std::string(" ") + m_url + std::string(" ") + std::string(kVersion);
     m_headers.clear();
     m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq ) );
     m_headers.push_back( "Accept: application/sdp" );
     m_headers.push_back( kUserAgent );
+    if( !m_digest_authentication.realm.empty() ) {
+        m_headers.push_back( std::string("Authorization: ") + f_prepare_digest_authorization( kDescribe, m_url ) );
+    }
+    else if( !m_autholization_header.empty() )
+        m_headers.push_back( std::string("Authorization: ") + m_autholization_header );
 
     std::cerr << "< " << m_protoline << std::endl;
     for( auto hdr : m_headers )
@@ -191,20 +217,20 @@ int dm::rtsp::Connection::askSdp() {
     std::vector< MediaDescription > mds;
     int ret = 0;
     while( true ) {
-        std::string s = line();
+        std::string s = f_line();
         if( s.empty() )
             break;
         std::cerr << "> " << s;
         if( !ret )
-            ret = resultCode( s );
-        if( ret == 401 /*Unauthorized*/ ) {
+            ret = f_result_code( s );
+        if( ret == BaseSession::Unauthorized ) {
             size_t pos;
             if( s.find( "WWW-Authenticate: Digest " ) != std::string::npos )
                 m_digest_authentication.parse( s.c_str() );
             if( s.find( "WWW-Authenticate: Basic " ) != std::string::npos )
                 m_basic_authentication.parse( s.c_str() );
         }
-        if (s[1] == '=' && ret == 200 ) {
+        if (s[1] == '=' && ret == BaseSession::OK ) {
             switch( s[0] ) {
                 case 'v':
                     current_sdp = &m_session_description;
@@ -224,7 +250,7 @@ int dm::rtsp::Connection::askSdp() {
     for( auto d : mds )
         m_media_sessions.push_back( std::shared_ptr< MediaSession >( MediaSession::create( d, this ) ) );
 
-    if( ret == 200 ) {
+    if( ret == BaseSession::OK ) {
         std::cerr << m_session_description << std::endl;
         for( auto session : m_media_sessions )
             std::cerr << *session->description() << std::endl;
@@ -232,11 +258,14 @@ int dm::rtsp::Connection::askSdp() {
     return ret;
 }
 
-int dm::rtsp::Connection::askSetup( MediaSession & media/*, basic::Viewer* viewer */ ) {
+int dm::rtsp::Connection::f_ask_setup( MediaSession & media ) {
     int ret = 0;
     {
         std::lock_guard< std::mutex > lk( m_mutex );
         std::string transport = std::string("Transport: ") + media.description()->name.protocol() + std::string("/TCP;unicast;mode=\"PLAY\"");
+
+        std::string url = media.description()->control.find("rtsp://") != std::string::npos ? media.description()->control : m_url + std::string("/") + media.description()->control;
+        m_protoline = std::string(kSetup) + std::string(" ") + url + std::string(" ") + std::string(kVersion);
 
         m_headers.clear();
         m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
@@ -244,12 +273,11 @@ int dm::rtsp::Connection::askSetup( MediaSession & media/*, basic::Viewer* viewe
         m_headers.push_back( transport );
         if( !m_session_id.empty() )
             m_headers.push_back( std::string( "Session: ") + m_session_id );
-
-        if( media.description()->control.find("rtsp://") != std::string::npos) {
-            m_protoline = std::string(kSetup) + media.description()->control + std::string(" ") + std::string(kVersion);
+        if( !m_digest_authentication.realm.empty() ) {
+            m_headers.push_back( std::string("Authorization: ") + f_prepare_digest_authorization( kSetup, url ) );
         }
-        else
-            m_protoline = std::string(kSetup) + m_session->source() + m_path + std::string("/") + media.description()->control + std::string(" ") + std::string(kVersion);
+        if( !m_autholization_header.empty() )
+            m_headers.push_back( std::string("Authorization: ") + m_autholization_header );
 
         std::cerr << "< " << m_protoline << std::endl;
         for( auto hdr: m_headers )
@@ -258,21 +286,16 @@ int dm::rtsp::Connection::askSetup( MediaSession & media/*, basic::Viewer* viewe
 
         m_session->putRequest( m_protoline.c_str(), m_headers );
         while( true ) {
-            std::string s = line();
+            std::string s = f_line();
             if( s.empty() )
                 break;
             if( !ret )
-                ret = resultCode( s );
+                ret = f_result_code( s );
 
             if( s.find("Transport: " ) == 0 ) {
-                try {
-                    media.setTransport( s.substr(11).c_str() );
-                    if( media.channel() > m_max_channel )
-                        m_max_channel = media.channel();
-                } catch( const std::logic_error& err ) {
-                    std::cerr << "[MEDIA ERROR] " << err.what() << std::endl;
-                    return 404;
-                }
+                media.setTransport( s.substr(11).c_str() );
+                if( media.channel() > m_max_channel )
+                    m_max_channel = media.channel();
             } else if( s.find("Session: ") == 0 ) {
                 media.setId( s.substr(9).c_str() );
             }
@@ -282,7 +305,7 @@ int dm::rtsp::Connection::askSetup( MediaSession & media/*, basic::Viewer* viewe
     return ret;
 }
 
-void dm::rtsp::Connection::askPlay( float pos, float scale ) {
+void dm::rtsp::Connection::f_ask_play( float pos, float scale ) {
     std::lock_guard< std::mutex > lk( m_mutex );
 
     m_headers.clear();
@@ -293,8 +316,13 @@ void dm::rtsp::Connection::askPlay( float pos, float scale ) {
     m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
     m_headers.push_back( kUserAgent);
     m_headers.push_back( std::string("Session: ") + m_session_id );
+    if( !m_digest_authentication.realm.empty() ) {
+        m_headers.push_back( std::string("Authorization: ") + f_prepare_digest_authorization( kPlay, m_url ) );
+    }
+    else if( !m_autholization_header.empty() )
+        m_headers.push_back( std::string("Authorization: ") + m_autholization_header );
 
-    m_protoline = std::string(kPlay) + std::string(" ") + m_session->source() + m_path + std::string(" ") + std::string(kVersion);
+    m_protoline = std::string(kPlay) + std::string(" ") + m_url + std::string(" ") + std::string(kVersion);
     std::cerr << "< " << m_protoline << std::endl;
     for( auto hdr : m_headers )
         std::cerr << "< " << hdr << std::endl;
@@ -312,8 +340,13 @@ void dm::rtsp::Connection::pause() {
         m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
         m_headers.push_back( kUserAgent );
         m_headers.push_back(std::string( "Session: " ) + m_session_id );
- 
-        m_protoline = std::string(kPause) + std::string(" ") + m_session->source() + m_path + std::string(" ") + std::string(kVersion);
+        if( !m_digest_authentication.realm.empty() ) {
+            m_headers.push_back( std::string("Authorization: ") + f_prepare_digest_authorization( kPause, m_url ) );
+        }
+        else if( !m_autholization_header.empty() )
+            m_headers.push_back( std::string("Authorization: ") + m_autholization_header );
+
+        m_protoline = std::string(kPause) + std::string(" ") + m_url + std::string(" ") + std::string(kVersion);
         std::cerr << "< " << m_protoline << std::endl;
         for( auto hdr : m_headers )
             std::cerr << "< " << hdr << std::endl;
@@ -333,9 +366,14 @@ void dm::rtsp::Connection::getParameter( const std::string & param ) {
     m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
     m_headers.push_back( kUserAgent );
     m_headers.push_back( std::string("Session: ") + m_session_id );
+    if( !m_digest_authentication.realm.empty() ) {
+        m_headers.push_back( std::string("Authorization: ") + f_prepare_digest_authorization( kGetParameter, m_url ) );
+    }
+    else if( !m_autholization_header.empty() )
+        m_headers.push_back( std::string("Authorization: ") + m_autholization_header );
     m_headers.push_back( std::string("Content-Length: ") + std::to_string(body.size()) );
       
-    m_protoline = std::string(kGetParameter) + std::string(" ") + m_session->source() + m_path + std::string(" ") + std::string(kVersion);
+    m_protoline = std::string(kGetParameter) + std::string(" ") + m_url + std::string(" ") + std::string(kVersion);
     std::cerr << "< " <<  m_protoline << std::endl;
     for( auto hdr : m_headers )
         std::cerr << "< " << hdr << std::endl;
@@ -356,9 +394,14 @@ void dm::rtsp::Connection::setParameter( const std::string & param ) {
     m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
     m_headers.push_back( kUserAgent );
     m_headers.push_back( std::string("Session: ") + m_session_id );
+    if( !m_digest_authentication.realm.empty() ) {
+        m_headers.push_back( std::string("Authorization: ") + f_prepare_digest_authorization( kSetParameter, m_url ) );
+    }
+    else if( !m_autholization_header.empty() )
+        m_headers.push_back( std::string("Authorization: ") + m_autholization_header );
     m_headers.push_back( std::string("Content-Length: ") + std::to_string(body.size()));
 
-    m_protoline = std::string(kSetParameter) + std::string(" ") + m_session->source() + m_path + std::string(" ") + std::string(kVersion);
+    m_protoline = std::string(kSetParameter) + std::string(" ") + m_url + std::string(" ") + std::string(kVersion);
     std::cerr << "< " << m_protoline << std::endl;
     for( auto hdr : m_headers )
         std::cerr << "< " << hdr << std::endl;
@@ -369,13 +412,11 @@ void dm::rtsp::Connection::setParameter( const std::string & param ) {
 }
 
 void dm::rtsp::Connection::scale( float sc ) {
-    if( sc == .0 )
-        sc = 1.0;
-    askPlay( 0, sc );
+    f_ask_play( 0, sc == 0. ? 1. : sc );
 }
 
 void dm::rtsp::Connection::resume( float position ) {
-    askPlay( position );
+    f_ask_play( position );
 }
 
 void dm::rtsp::Connection::ping() {
@@ -387,8 +428,13 @@ void dm::rtsp::Connection::ping() {
     m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
     m_headers.push_back( kUserAgent );
     m_headers.push_back( std::string("Session: ") + m_session_id );
+    if( !m_digest_authentication.realm.empty() ) {
+        m_headers.push_back( std::string("Authorization: ") + f_prepare_digest_authorization( kGetParameter, m_url ) );
+    }
+    else if( !m_autholization_header.empty() )
+        m_headers.push_back( std::string("Authorization: ") + m_autholization_header );
 
-    m_protoline = std::string(kGetParameter) + std::string(" ") + m_session->source() + m_path + std::string(" ") + std::string(kVersion);
+    m_protoline = std::string(kGetParameter) + std::string(" ") + m_url + std::string(" ") + std::string(kVersion);
     std::cerr << "< " <<  m_protoline << std::endl;
     for( auto hdr : m_headers )
         std::cerr << "< " << hdr << std::endl;
@@ -397,15 +443,20 @@ void dm::rtsp::Connection::ping() {
     m_session->putRequest( m_protoline.c_str(), m_headers );
 }
 
-void dm::rtsp::Connection::askTeardown(const std::string& id) {
+void dm::rtsp::Connection::f_ask_teardown( const std::string& id ) {
     std::lock_guard< std::mutex > lk( m_mutex );
 
     m_headers.clear();
     m_headers.push_back( std::string("CSeq: ") + std::to_string(++m_cseq) );
     m_headers.push_back(kUserAgent);
     m_headers.push_back(std::string("Session: ") + id);
- 
-    m_protoline = std::string(kTeardown) + std::string(" ") + m_session->source() + m_path + std::string(" ") + std::string(kVersion);
+    if( !m_digest_authentication.realm.empty() ) {
+        m_headers.push_back( std::string("Authorization: ") + f_prepare_digest_authorization( kTeardown, m_url ) );
+    }
+    else if( !m_autholization_header.empty() )
+        m_headers.push_back( std::string("Authorization: ") + m_autholization_header );
+
+    m_protoline = std::string(kTeardown) + std::string(" ") + m_url + std::string(" ") + std::string(kVersion);
 
     std::cerr << "< " << m_protoline << std::endl;
     for( auto hdr : m_headers )
@@ -413,23 +464,31 @@ void dm::rtsp::Connection::askTeardown(const std::string& id) {
     std::cerr << "\n\t* * *\n\n";
 
     m_session->putRequest( m_protoline.c_str(), m_headers );
-    response();
+    f_response();
 }
 
 void dm::rtsp::Connection::open() {
-    if( askOptions() != BaseSession::OK )
+    if( f_ask_options() != BaseSession::OK )
         throw std::logic_error( "[RTSP] failed to get options" );
-    if( askSdp() != BaseSession::OK )
-        throw std::logic_error( "[RTSP] failed to get SDP" );
+    int rc;
+    if( (rc = f_ask_sdp()) != BaseSession::OK ) {
+        if( rc == BaseSession::Unauthorized ) {
+            f_prepare_basic_authorization();
+            if( f_ask_sdp() != BaseSession::OK )
+                throw std::logic_error( "[RTSP] failed to get SDP" );
+        }
+        else
+            throw std::logic_error( "[RTSP] failed to get SDP" );
+    }
     for( auto ms : m_media_sessions ) {
-        if( askSetup( *ms ) != BaseSession::OK ) {
+        if( f_ask_setup( *ms ) != BaseSession::OK ) {
             std::cerr << "[RTSP] failed to setup for session ";
             return;
         } else {
             m_session_id = ms->id();
         }
     }
-    askPlay();
+    f_ask_play();
 }
 
 void dm::rtsp::Connection::set( fd_set* rfds ) {
@@ -486,7 +545,7 @@ int dm::rtsp::Connection::receive( fd_set* rfds, InterleavedBuffer * buffer ) {
     return ret;
 }
 
-void dm::rtsp::Connection::setRange( std::string & line ) {
+void dm::rtsp::Connection::f_set_range( std::string & line ) {
     size_t pos_eq = line.find('=');
     size_t pos_ap = line.find('-');
 
@@ -494,5 +553,28 @@ void dm::rtsp::Connection::setRange( std::string & line ) {
         m_range_begin = std::stof( line.substr( pos_eq + 1, pos_ap - pos_eq - 1 ) );
         if( pos_ap < line.size() - 3 )
             m_range_end = std::stof( line.substr( pos_ap + 1 ) );
+    }
+}
+
+void dm::rtsp::Connection::f_prepare_basic_authorization() {
+    if( !m_basic_authentication.realm.empty() ) {
+        std::string auth = m_user + ":" + m_password;
+        m_autholization_header = std::string("Basic ") + Base64( (const uint8_t*)auth.c_str(), auth.size() ).enc();
+    }
+
+}
+
+std::string dm::rtsp::Connection::f_prepare_digest_authorization( const std::string & method, const std::string & url ) {
+    if( !m_digest_authentication.realm.empty() ) {
+        std::string HA1Content = m_user + ":" + m_digest_authentication.realm + ":" + m_password;
+        std::string HA1Value = md5sum( (const uint8_t *)HA1Content.data(),HA1Content.size() );
+        std::string HA2Content = method + ":" + url;
+        std::string HA2Value = md5sum( (const uint8_t *)HA2Content.data(), HA2Content.size() );
+
+        std::string responseContent = HA1Value + ":" + m_digest_authentication.nonce + ":" + HA2Value;
+        std::string responseValue = md5sum( (const uint8_t *)responseContent.data(), responseContent.size() );
+
+        return std::move( std::string("Digest username=\"")+m_user+"\", realm=\""+m_digest_authentication.realm+"\", nonce=\""+
+                m_digest_authentication.nonce+"\", uri=\""+url+"\", response=\""+responseValue+"\"" );
     }
 }

@@ -4,7 +4,7 @@
 
 dm::rtsp::Receiver::Receiver( const char * source, const char * cert )
 : BaseReceiver( source, cert ),
-  m_connection( m_url.c_str(), m_path.c_str() ),
+  m_connection( m_url, m_path, m_user, m_password ),
   m_data( 0xffff ) {
     m_interleaved_buffer.data = m_data.data();
 }

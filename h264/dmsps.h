@@ -70,6 +70,7 @@ namespace dm {
 
         private:
             bool f_has_chroma_format_idc();
+            void f_scaling_list( size_t sizeOfScalingList );
         };
     }  // namespace h264
 }  // namespace dm
