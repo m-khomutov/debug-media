@@ -64,8 +64,6 @@ namespace dm {
             int PicWidthInMbs;
             int PicWidthInSamples;
             int PicHeightInMapUnits;
-            int PicSizeInMapUnits;
-            int FrameHeightInMbs;
             int FrameHeightInSamples;
 
         private:

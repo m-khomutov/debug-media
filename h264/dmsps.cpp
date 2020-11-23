@@ -4,6 +4,12 @@
 
 #include "dmsps.h"
 
+namespace {
+    // sps::separate_color_plane_flag = 0, sps::chroma_format_idc = {0,1,2,3}
+    int8_t subWidthC[ 4 ]  = { -1, 2, 2, 1 };
+    int8_t subHeightC[ 4 ] = { -1, 2, 1, 1 };
+}  // namespace
+
 dm::h264::Sps::Sps( const uint8_t *data, size_t sz )
 : m_bitreader( data+1, sz-1 ), /*first byte - nalu header*/
   m_profile_idc( m_bitreader.byte() ),
@@ -57,13 +63,11 @@ dm::h264::Sps::Sps( const uint8_t *data, size_t sz )
     m_gaps_in_frame_num_value_allowed_flag = m_bitreader.bit();
     m_pic_width_in_mbs_minus1 = m_bitreader.uGolomb();
     PicWidthInMbs = m_pic_width_in_mbs_minus1+1;
-    PicWidthInSamples = PicWidthInMbs*16;
+
     m_pic_height_in_map_units_minus1 = m_bitreader.uGolomb();
     PicHeightInMapUnits = m_pic_height_in_map_units_minus1+1;
-    PicSizeInMapUnits = PicWidthInMbs*PicHeightInMapUnits;
     m_frame_mbs_only_flag = m_bitreader.bit();
-    FrameHeightInMbs=(2-m_frame_mbs_only_flag)*PicHeightInMapUnits;
-    FrameHeightInSamples=FrameHeightInMbs*16;
+
     if( !m_frame_mbs_only_flag )
         m_mb_adaptive_frame_field_flag = m_bitreader.bit();
     m_direct_8x8_inference_flag = m_bitreader.bit();
@@ -74,6 +78,15 @@ dm::h264::Sps::Sps( const uint8_t *data, size_t sz )
         m_frame_crop_top_offset = m_bitreader.uGolomb();
         m_frame_crop_bottom_offset = m_bitreader.uGolomb();
     }
+
+    uint32_t cropUnitX = m_ChromaArrayType == 0 ? 1 : subWidthC[ m_ChromaArrayType ];
+    uint64_t widthInSamples = PicWidthInMbs << 4;
+    PicWidthInSamples = widthInSamples - cropUnitX * ( m_frame_crop_left_offset + m_frame_crop_right_offset );
+
+    uint32_t cropUnitY = m_ChromaArrayType == 0 ? (2 - m_frame_mbs_only_flag) : subHeightC[ m_ChromaArrayType ] * (2 - m_frame_mbs_only_flag);
+    uint64_t heightInSamples = (2 - m_frame_mbs_only_flag) * (PicHeightInMapUnits << 4);
+    FrameHeightInSamples = heightInSamples - cropUnitY * ( m_frame_crop_top_offset + m_frame_crop_bottom_offset );
+
     m_vui_parameters_present_flag = m_bitreader.bit();
 }
 
