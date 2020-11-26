@@ -42,8 +42,8 @@ void dm::q::Player::run() {
     show();
 }
 
-void dm::q::Player::onFrame( AVFrame *avframe ) {
-    if( avframe ) {
+void dm::q::Player::onFrame( int len, AVFrame *avframe ) {
+    if( len != -1 ) {
         if( avframe->width && avframe->height ) {
             std::lock_guard< std::mutex > lk( m_frame_mutex );
 

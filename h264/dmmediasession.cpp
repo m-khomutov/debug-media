@@ -26,11 +26,11 @@ dm::h264::MediaSession::MediaSession( const rtsp::MediaDescription & description
         f_set_sprop_parameter_sets( m_media_description.fmtp.substr( pos+21, p2-pos-21) );
     }
     Sps sps( m_sps.data()+sizeof(annexbdiv), m_sps.size()-sizeof(annexbdiv) );
-    m_player = BasePlayer::create( sps.width(), sps.height(), this );
+    m_player = new q::Player( this, sps.width(), sps.height(), 10 );
     m_player->run();
 }
 
-void dm::h264::MediaSession::receiveInterleaved( const uint8_t *data, size_t datasz ) {
+void dm::h264::MediaSession::receiveInterleaved( uint8_t *data, size_t datasz ) {
     rtsp::MediaSession::receiveInterleaved( data, datasz );
     h264::Header h264_hdr(m_rtp_header.payload);
     //std::cerr << "rtp: " << m_rtp_header << std::endl;
@@ -70,7 +70,8 @@ void dm::h264::MediaSession::receiveInterleaved( const uint8_t *data, size_t dat
         default:
             return;
     }
-    m_player->onFrame( m_decoder.decode( m_nalu ) );
+    if( m_player )
+        m_player->onFrame( m_decoder.decode( m_nalu.data(), m_nalu.size() ), m_decoder.frame() );
     m_nalu.clear();
 }
 

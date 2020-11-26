@@ -26,7 +26,7 @@ namespace dm {
             Player( rtsp::MediaSession * session, int width, int height, int ask_position_sec );
 
             void run() override;
-            void onFrame( AVFrame * frame ) override;
+            void onFrame( int len, AVFrame * frame ) override;
 
         protected:
             virtual void showEvent( QShowEvent * event );

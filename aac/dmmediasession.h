@@ -1,16 +1,19 @@
 //
-// Created by mkh on 16.11.2020.
+// Created by mkh on 25.11.2020.
 //
 #pragma once
 
 #include <rtsp/dmmediasession.h>
-#include <h264/dmdecoder.h>
+#include "dmdecoder.h"
+#include "dmalsaplayer.h"
+
+#include <memory>
 
 namespace dm {
     namespace rtsp {
         class Connection;
     }
-    namespace h264 {
+    namespace aac {
         class MediaSession : public rtsp::MediaSession {
         public:
             MediaSession( const rtsp::MediaDescription & description, rtsp::Connection * connection );
@@ -18,14 +21,9 @@ namespace dm {
             void receiveInterleaved( uint8_t * data, size_t datasz ) override;
 
         private:
-            Decoder m_decoder;
+            std::unique_ptr< Decoder > m_decoder;
+            std::unique_ptr< BasePlayer > m_player;
+        };
 
-            std::vector< uint8_t > m_sps;
-            std::vector< uint8_t > m_pps;
-            std::vector< uint8_t > m_nalu;
-
-        private:
-            void f_set_sprop_parameter_sets( const std::string & sprop );
-    };
-    }  // namwspace h264
+    }  // namespace aac
 }  // namespace dm

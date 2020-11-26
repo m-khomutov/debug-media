@@ -13,11 +13,9 @@ namespace dm {
     }
     class BasePlayer {
     public:
-        static BasePlayer * create( int width, int height, rtsp::MediaSession * session );
-
         virtual ~BasePlayer() = default;
 
         virtual void run() = 0;
-        virtual void onFrame( AVFrame * frame ) =0;
+        virtual void onFrame( int len, AVFrame * frame ) = 0;
     };
 }

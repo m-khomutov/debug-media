@@ -247,8 +247,11 @@ int dm::rtsp::Connection::f_ask_sdp() {
             }
         }
     }
-    for( auto d : mds )
-        m_media_sessions.push_back( std::shared_ptr< MediaSession >( MediaSession::create( d, this ) ) );
+    for( auto d : mds ) {
+        MediaSession * ms = MediaSession::create( d, this );
+        if( ms )
+            m_media_sessions.push_back( std::shared_ptr< MediaSession >( ms ) );
+    }
 
     if( ret == BaseSession::OK ) {
         std::cerr << m_session_description << std::endl;

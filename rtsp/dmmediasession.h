@@ -3,7 +3,7 @@
 //
 #pragma once
 
-#include "core/dmbaseplayer.h"
+#include "dmqplayer.h"
 #include "dmsdp.h"
 
 #include <atomic>
@@ -23,10 +23,10 @@ namespace dm {
             uint32_t ssrc;
             uint32_t csrc_list[ 0x0F ];
 
-            const uint8_t * payload;
+            uint8_t * payload;
 
             Header() = default;
-            Header( const uint8_t * data );
+            Header( uint8_t * data );
         };
     }  // namespace rtp
 
@@ -45,7 +45,7 @@ namespace dm {
             void setTransport( const char* line );
             void setId( const char * line );
 
-            virtual void receiveInterleaved( const uint8_t * data, size_t datasz );
+            virtual void receiveInterleaved( uint8_t * data, size_t datasz );
 
             MediaDescription * description() {
                 return &m_media_description;
@@ -73,7 +73,7 @@ namespace dm {
             Range m_range;
             std::atomic< double > m_position;
             Connection * m_connection;
-            BasePlayer * m_player {nullptr};
+            BasePlayer * m_player{nullptr};
         };
     }  // namespace rtsp
 }  // namespace dm

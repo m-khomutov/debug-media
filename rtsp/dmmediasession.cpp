@@ -4,6 +4,7 @@
 
 #include "dmmediasession.h"
 #include "h264/dmmediasession.h"
+#include "aac/dmmediasession.h"
 
 std::ostream& operator <<( std::ostream& out, const dm::rtp::Header & h ) {
     out << "v=" << int(h.version)
@@ -24,7 +25,7 @@ std::ostream& operator <<( std::ostream& out, const dm::rtp::Header & h ) {
     return out;
 }
 
-dm::rtp::Header::Header( const uint8_t * data ) {
+dm::rtp::Header::Header( uint8_t * data ) {
     off_t off = 0;
     version = ((data[ off ])>>6)&0x03;   // 2 bits
     padding = ((data[ off ])>>5)&0x01;   // 1 bit
@@ -52,10 +53,15 @@ dm::rtp::Header::Header( const uint8_t * data ) {
 
 
 dm::rtsp::MediaSession * dm::rtsp::MediaSession::create( const MediaDescription &description, Connection * connection ) {
-    if( description.rtpmap.find( "H264" ) != std::string::npos ) {
+    if( description.rtpmap.find ( "H264" ) != std::string::npos ) {
+    }
+    if( strcasestr( description.rtpmap.c_str(), "H264" ) ) {
         return new h264::MediaSession( description, connection );
     }
-    return new MediaSession( description, connection );
+    else if( strcasestr( description.rtpmap.c_str(), "MPEG4-GENERIC" ) ) {
+        return new aac::MediaSession( description, connection );
+    }
+    return nullptr;
 }
 
 dm::rtsp::MediaSession::MediaSession( const MediaDescription & description, Connection * connection )
@@ -67,7 +73,7 @@ dm::rtsp::MediaSession::MediaSession( const MediaDescription & description, Conn
     m_range.second = 0ul;
 }
 
-void dm::rtsp::MediaSession::receiveInterleaved( const uint8_t *data, size_t datasz ) {
+void dm::rtsp::MediaSession::receiveInterleaved( uint8_t *data, size_t datasz ) {
     m_rtp_header = rtp::Header( data );
     if( m_rtp_header.payload_type == m_payload_type ) {
         if( !m_range.first )
