@@ -19,8 +19,9 @@ namespace dm {
             void onFrame( int len, AVFrame * frame ) override;
 
         private:
-            using SndPcmPtr = std::unique_ptr< snd_pcm_t, std::function< void(snd_pcm_t*) > >;
-            SndPcmPtr m_pcm;
+            template< typename T >
+            using SndPcmPtr = std::unique_ptr< T, std::function< void(T*) > >;
+            SndPcmPtr< snd_pcm_t > m_pcm;
         };
     }  // namespace alsa
 }  // namespace dm
