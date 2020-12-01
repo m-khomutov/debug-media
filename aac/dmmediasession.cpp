@@ -18,8 +18,11 @@ namespace {
 
 std::ostream& operator <<( std::ostream& out, const dm::rtp::Header & h );
 
+
+
+
 dm::aac::MediaSession::MediaSession( const rtsp::MediaDescription & description, rtsp::Connection * connection )
-: rtsp::MediaSession( description, connection ) {
+: rtsp::MediaSession( description, connection ),m_auheader_fields( description.fmtp ) {
     size_t p;
     if( (p = description.rtpmap.find( '/')) != std::string::npos ) {
         int frequency = strtol( description.rtpmap.data()+(p+1), nullptr, 10 );
@@ -35,7 +38,7 @@ void dm::aac::MediaSession::receiveInterleaved( uint8_t *data, size_t datasz ) {
     rtsp::MediaSession::receiveInterleaved( data, datasz );
 //    std::cerr << "rtp: " << m_rtp_header << std::endl;
     if( m_rtp_header.payload_type == m_payload_type ) {
-        AuHeaderSection header_section( m_rtp_header.payload );
+        AuHeaderSection header_section( m_rtp_header.payload, m_auheader_fields );
         data = header_section.payload();
         for( auto h : header_section ) {
             if( m_decoder && m_player )

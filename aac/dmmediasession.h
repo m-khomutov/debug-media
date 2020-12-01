@@ -5,6 +5,7 @@
 
 #include <rtsp/dmmediasession.h>
 #include "dmdecoder.h"
+#include "dmauheadersection.h"
 #include "dmalsaplayer.h"
 
 #include <memory>
@@ -23,6 +24,7 @@ namespace dm {
         private:
             std::unique_ptr< Decoder > m_decoder;
             std::unique_ptr< BasePlayer > m_player;
+            AuHeader::Fields m_auheader_fields;
         };
 
     }  // namespace aac

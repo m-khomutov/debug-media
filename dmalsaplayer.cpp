@@ -30,12 +30,12 @@ dm::alsa::Player::Player( uint16_t samplerate, uint8_t channels, snd_pcm_format_
         unsigned int exact_rate = samplerate;
         if( (rc = snd_pcm_hw_params_set_rate_near( m_pcm.get(), params.get(), &exact_rate, 0 )) < 0 )
             throw std::logic_error( std::string( snd_strerror( rc ) ) );
-        if( (rc = snd_pcm_hw_params_set_channels( m_pcm.get(), params.get(), channels )) < 0 )
+        if( (rc = snd_pcm_hw_params_set_channels( m_pcm.get(), params.get(), 1 )) < 0 )
             throw std::logic_error( std::string( snd_strerror( rc ) ) );
-        snd_pcm_uframes_t periods = 4;
+        snd_pcm_uframes_t periods = 8;
         if( (rc = snd_pcm_hw_params_set_periods( m_pcm.get(), params.get(), periods, 0 )) < 0 )
             throw std::logic_error( std::string( snd_strerror( rc ) ) );
-        snd_pcm_uframes_t periodsize = 4096;
+        snd_pcm_uframes_t periodsize = 32768;
         snd_pcm_uframes_t size = (periodsize * periods) >> 2;
         if( (rc = snd_pcm_hw_params_set_buffer_size_near( m_pcm.get(), params.get(), &size )) < 0)
             throw std::logic_error( std::string( snd_strerror( rc ) ) );
@@ -62,7 +62,7 @@ dm::alsa::Player::Player( uint16_t samplerate, uint8_t channels, snd_pcm_format_
 void dm::alsa::Player::onFrame( int len , AVFrame *frame ) {
     if( len != -1 ) {
         snd_pcm_uframes_t count = 0;
-        len = len / sizeof(float);
+        len = len / (sizeof(float) * frame->channels );
         do {
             snd_pcm_uframes_t frames = snd_pcm_writei( m_pcm.get(), (float*)frame->data[0] + count, len - count );
             if (frames == -EPIPE) {
