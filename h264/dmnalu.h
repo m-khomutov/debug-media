@@ -19,10 +19,11 @@ namespace dm {
         const char Filler  = 12;
         const char SPSext  = 13;
         const char Prefix  = 14;
-        const char ssSPS   = 15;
-        const char AUX     = 19;
+        const char SubsetSPS = 15;
+        const char DepthPS = 16;
+        const char AuxSlice= 19;
         const char SliceExt= 20;
-        const char UNIT   = 23;
+        const char Slice3D = 21;
         const char STAP_A = 24;
         const char STAP_B = 25;
         const char MTAP_A = 26;

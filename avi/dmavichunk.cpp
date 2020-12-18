@@ -50,8 +50,10 @@ dm::avi::Chunk::Type dm::avi::Chunk::str2type( const char * str ) {
 }
 
 dm::avi::RiffChunk::RiffChunk( FILE * f ) : Chunk( Type::kRIFF ){
-    if( fread( &m_size, 1, sizeof(m_size), f ) != sizeof(m_size) )
-        throw std::logic_error( "failed to read RIFF size" );
+    uint8_t buf[ 3*sizeof(uint32_t) ];
+    if( fread( buf, 1, sizeof(buf), f ) != sizeof(buf) )
+        throw std::logic_error( "failed to read RIFF format" );
+    RiffHeader hdr( FourCC::kRiff, buf );
 }
 
 dm::avi::AviChunk::AviChunk( FILE * f ) : Chunk( Type::kAVI ){
@@ -79,6 +81,11 @@ dm::avi::HdrlChunk::HdrlChunk( FILE * f ) : Chunk( Type::kHdrl ) {
 dm::avi::File::File( const char *fname ) : m_fd( fopen( fname, "r" ), [](FILE*f){ fclose( f ); } ) {
     if( !m_fd )
         throw std::logic_error( strerror( errno ) );
+
+    RiffHeader hdr( FourCC::kRiff, m_fd.get() );
+    if( hdr.type() != FourCC::kAvi )
+        throw std::logic_error( "no an AVI file" );
+
     while( true ) {
         std::unique_ptr< Chunk> chunk( Chunk::create( m_fd.get() ) );
         if( chunk ) {

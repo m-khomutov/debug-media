@@ -24,10 +24,10 @@ namespace dm {
 
         private:
             std::vector< uint8_t > m_rbsp;
-            uint64_t m_offset{0};
+            uint64_t mutable m_offset{0};
 
         private:
-            uint32_t f_get_bit_by_offset( uint64_t offset ) const;
+            uint32_t f_get_bit() const;
         };
 
     } // namespace h264

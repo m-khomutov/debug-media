@@ -11,6 +11,29 @@ namespace dm {
         public:
             Sps( const uint8_t * data, size_t sz );
 
+            bool separateColourPlaneFlag() const {
+                return m_separate_colour_plane_flag;
+            }
+            uint32_t maxFrameNum() const {
+                return m_log2_max_frame_num_minus4 + 4;
+            }
+            bool frameMbsOnlyFlag() const {
+                return m_frame_mbs_only_flag;
+            }
+            uint32_t picOrderCountType() const {
+                return m_pic_order_cnt_type;
+            }
+            uint32_t maxPicOrderCountLsb() const {
+                return m_log2_max_pic_order_cnt_lsb_minus4 + 4;
+            }
+            bool deltaPicOrderAlwaysZeroFlag() const {
+                return m_delta_pic_order_always_zero_flag;
+            }
+            int chromaArrayType() const {
+                if( m_separate_colour_plane_flag )
+                    return 0;
+                return m_chroma_format_idc;
+            }
             int width() const {
                 return PicWidthInSamples;
             }

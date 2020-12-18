@@ -23,9 +23,6 @@ std::ostream& operator <<( std::ostream& out, const dm::h264::Header & hdr ) {
         case dm::h264::DELIM:
             out << "Delim";
             break;
-        case dm::h264::UNIT:
-            out << "Unit";
-            break;
         case dm::h264::STAP_A:
             out << "STAP_A";
             break;

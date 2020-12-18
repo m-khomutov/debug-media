@@ -10,6 +10,65 @@
 
 namespace dm {
     namespace avi {
+        enum FourCC {
+            kRiff = 0x46464952,
+            kAvi  = 0x20495641,
+            kList = 0x5453494c
+        };
+        class RiffHeader {
+        public:
+            static const uint32_t kSize = 3 * sizeof(uint32_t);
+
+            RiffHeader( FourCC hdrType, const uint8_t * data ) {
+                FourCC t = *(FourCC*)data;
+                if( t != hdrType )
+                    throw std::logic_error( "bad RIFF format" );
+
+                m_size = be32toh( *(uint32_t*)data + sizeof(uint32_t) );
+                m_type = FourCC(*(uint32_t*)(data + 2*sizeof(uint32_t)));
+            }
+            RiffHeader( FourCC hdrType, FILE * f ) {
+                FourCC t;
+                if( fread( &t, 1, sizeof(uint32_t), f ) != sizeof(uint32_t) || t != hdrType )
+                    throw std::logic_error( "bad RIFF format" );
+
+                if( fread( &m_size, 1, sizeof(uint32_t), f ) != sizeof(uint32_t) ||
+                    fread( &m_type, 1, sizeof(uint32_t), f ) != sizeof(uint32_t) )
+                    throw std::logic_error( "failed to read RIFF format" );
+            }
+
+            uint32_t size() const {
+                return m_size;
+            }
+            FourCC type() const {
+                return m_type;
+            }
+
+        private:
+            uint32_t m_size;
+            FourCC m_type;
+        };
+        class ChunkHeader {
+        public:
+            static const uint32_t kSize = 2 * sizeof(uint32_t);
+
+            ChunkHeader( const uint8_t * data ) {
+                m_id = FourCC(*(uint32_t*)(data + 2*sizeof(uint32_t)));
+                m_size = be32toh( *(uint32_t*)data + sizeof(uint32_t) );
+            }
+
+            uint32_t size() const {
+                return m_size;
+            }
+            FourCC id() const {
+                return m_id;
+            }
+
+        private:
+            FourCC m_id;
+            uint32_t m_size;
+        };
+
         class Chunk {
         public:
             enum class Type {

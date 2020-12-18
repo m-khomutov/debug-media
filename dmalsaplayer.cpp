@@ -35,8 +35,8 @@ dm::alsa::Player::Player( uint16_t samplerate, uint8_t channels, snd_pcm_format_
         snd_pcm_uframes_t periods = 8;
         if( (rc = snd_pcm_hw_params_set_periods( m_pcm.get(), params.get(), periods, 0 )) < 0 )
             throw std::logic_error( std::string( snd_strerror( rc ) ) );
-        snd_pcm_uframes_t periodsize = 32768;
-        snd_pcm_uframes_t size = (periodsize * periods) >> 2;
+        snd_pcm_uframes_t periodsize = samplerate;
+        snd_pcm_uframes_t size = (periodsize * periods) >> 1;
         if( (rc = snd_pcm_hw_params_set_buffer_size_near( m_pcm.get(), params.get(), &size )) < 0)
             throw std::logic_error( std::string( snd_strerror( rc ) ) );
         if( (rc = snd_pcm_hw_params( m_pcm.get(), params.get() )) < 0 )
