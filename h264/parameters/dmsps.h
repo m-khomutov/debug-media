@@ -3,7 +3,7 @@
 //
 #pragma once
 
-#include "dmbitreader.h"
+#include "h264/dmbitreader.h"
 
 namespace dm {
     namespace h264 {

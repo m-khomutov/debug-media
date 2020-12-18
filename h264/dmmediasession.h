@@ -5,7 +5,7 @@
 
 #include <rtsp/dmmediasession.h>
 #include <h264/dmdecoder.h>
-#include "h264/dmsps.h"
+#include "h264/parameters/dmsps.h"
 #include "h264/parameters/dmpps.h"
 
 #include <memory>
