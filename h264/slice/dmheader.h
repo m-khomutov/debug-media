@@ -37,6 +37,10 @@ namespace dm {
 
                 Header( const Sps * sps, const Pps * pps, const uint8_t *data, size_t sz );
 
+                BitReader & bitReader() {
+                    return m_bitreader;
+                }
+
             private:
                 BitReader m_bitreader;
                 char m_nal_ref_idc;
